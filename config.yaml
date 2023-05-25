@@ -1,0 +1,8 @@
+path_atiss: 'ATISS'
+path_atiss_extra: 'ATISS_extra'
+path_cfl:   'CFLPytorch'
+path_pbn: 'Panoramic-BlitzNet'
+conda_atiss: 'pnbz'
+conda_pbn: 'envname'
+standardCeilingHeigh: 2.4
+path_future: '../../../../media/raimon/SSD/3Dfront/3D-FUTURE-model'

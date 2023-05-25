@@ -1,0 +1,10 @@
+ATISS/
+ATISS_extra/
+CFLPytorch/
+Panoramic-BlitzNet/
+output/
+input/
+tmp/
+scene_synthesis/
+config/
+__pycache__/
