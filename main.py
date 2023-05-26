@@ -40,6 +40,28 @@ def get_args(argv):
         default="Modern",
         help="Style of furniture"
     )
+    '''
+    Styles:
+    Modern
+    Chinoiserie
+    Kids
+    European
+    Japanese
+    Southeast Asia
+    Industrial
+    American Country
+    Vintage/Retro
+    Light Luxury
+    Mediterranean
+    Korean
+    New Chinese
+    Nordic
+    European Classic
+    Others
+    Ming Qing
+    Neoclassical
+    Minimalist
+    '''
     parser.add_argument(
         "--mode_ss",
         default="visualize",
@@ -117,7 +139,7 @@ def main(argv):
     #executeCFLandPB()
     convert2Dto3D.test()
     dict3D = convert2Dto3D.convert()
-    front3D = conver3DtoFront.convert(dict3D, "Modern")
+    front3D = conver3DtoFront.convert(dict3D, args.style)
     jsonPath = args.path_to_output_folder + args.name_output_file
     with open(jsonPath, 'w') as f:
         json.dump(front3D, f)

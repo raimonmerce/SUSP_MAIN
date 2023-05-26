@@ -236,7 +236,9 @@ def convert(room, style):
             category = ItemsT[obj['type']]["future"]
             if category:
                 bbox = obj['bbox']
-                future_object = dataset_furniture.get_closest_furniture_to_box(category, bbox)
+                future_object = dataset_furniture.get_closest_furniture_to_box_style(category, bbox, style)
+                if future_object == None:
+                    future_object = dataset_furniture.get_closest_furniture_to_box(category, bbox)
                 if future_object:
                     child = {}
                     child['ref'] = future_object.model_uid

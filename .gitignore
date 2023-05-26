@@ -5,6 +5,7 @@ Panoramic-BlitzNet/
 output/
 input/
 tmp/
-scene_synthesis/
 config/
 __pycache__/
+categories.py
+model_info.json
