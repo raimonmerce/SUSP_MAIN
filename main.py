@@ -152,10 +152,15 @@ def main(argv):
             .renderType('color')
             .shapeLocalSource(config['path_future'])
             .hiddenMeshes(['Ceiling', 'SlabTop', 'ExtrusionCustomizedCeilingModel']))
+    elif (args.mode_ss == "completion"):
+        #Scene Synthesis ATISS Scene Completion
+        comand = "conda run -n " + config['conda_atiss'] + " python3 scene_completion.py " + config['path_to_config_yaml'] + " " + config['path_to_output_dir'] + " " + config['path_to_3d_future_pickled_data'] + " " + config['path_to_floor_plan_texture_images'] + " --weight_file " + config['path_to_weight_file'] + " --scene_id Bedroom-68718 --n_sequences 1 --with_rotating_camera"
+        workinwDirectory = "ATISS/scripts"
+        process = subprocess.Popen(comand, shell=True, cwd=workinwDirectory)    
+        return_code = process.wait()
     else: 
-        #Scene Synthesis ATISS
+        #Scene Synthesis ATISS Object Suggestions
         return False
-
 
 if __name__ == "__main__":
     main(sys.argv[1:])

@@ -2,7 +2,12 @@ path_atiss: 'ATISS'
 path_atiss_extra: 'ATISS_extra'
 path_cfl:   'CFLPytorch'
 path_pbn: 'Panoramic-BlitzNet'
-conda_atiss: 'pnbz'
+conda_atiss: 'atiss'
 conda_pbn: 'envname'
 standardCeilingHeigh: 2.4
 path_future: '../../../../media/raimon/SSD/3Dfront/3D-FUTURE-model'
+path_to_config_yaml: ../config/test_config.yaml
+path_to_output_dir: ../../ATISS_extra/scene_completion
+path_to_3d_future_pickled_data: ../../ATISS_extra/pickle/threed_future_model_bedroom.pkl
+path_to_floor_plan_texture_images: ../demo/floor_plan_texture_images
+path_to_weight_file: ../../ATISS_extra/test_train/RNNGCU17A/model_06200

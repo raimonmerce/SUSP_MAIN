@@ -8,6 +8,8 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
+from shapely.geometry import Polygon
+
 from mpl_toolkits.mplot3d import Axes3D
 
 from sklearn.linear_model import RANSACRegressor
@@ -129,7 +131,7 @@ def uv2xyz(uv,imW,imH):
     xyz = np.array([np.sin(phi) * np.cos(tetha),np.cos(tetha) * np.cos(phi),np.sin(tetha)])
     return xyz.T
 
-def alignFloorCeil(ceil_xyz, floor_xyz, f3D, c3D):
+def alignFloorCeil(floor_xyz, ceil_xyz, f3D, c3D):
     if len(ceil_xyz) != len(floor_xyz):
         print("error")
         return None, None
@@ -141,7 +143,16 @@ def alignFloorCeil(ceil_xyz, floor_xyz, f3D, c3D):
             c3D[i] = [temp_x, temp_y, c3D[i][2]]
         return f3D, c3D
 
-def getWalls(floor, ceil):
+def getWalls3D(floor):
+    floor = np.vstack((floor, floor[0,:]))
+    walls = []
+    for i in range(len(floor) - 1):
+        topL = [floor[i][0], standardCeilingHeigh, floor[i][2]]
+        topR = [floor[i + 1][0], standardCeilingHeigh, floor[i + 1][2]]
+        walls.append([floor[i], topL, topR, floor[i + 1]])
+    return np.array(walls)
+
+def getWalls3DReversed(floor, ceil):
     if len(floor) != len(ceil):
         print("error")
         return None, None
@@ -153,31 +164,47 @@ def getWalls(floor, ceil):
             walls.append([floor[i], floor[i + 1], ceil[i + 1], ceil[i]])
         return np.array(walls)
 
+#Get polygon buffer
+def bufferPolygon(poly):
+    polygon_points = poly[:, [0, 2]]
+    scaling_factor = 0.1
+    polygon = Polygon(polygon_points)
+    buffered_polygon = polygon.buffer(scaling_factor, quad_segs = 0, cap_style='flat', join_style='mitre')  
+    polygon_coords = np.array(buffered_polygon.exterior.coords)[::-1][:-1]
+    y_array = np.reshape(poly[:, 1], (-1, 1))
+    result = np.concatenate(( np.reshape(polygon_coords[:, 0], (-1, 1)), y_array,  np.reshape(polygon_coords[:, 1], (-1, 1))), axis=1)
+    return np.array(result)
+
+def getOuterWalls(floor):
+    floor_out_3D = bufferPolygon(floor)
+    return getWalls3D(floor_out_3D)
+
 def getCorrectedFloorCeilWalls(cor_uv):
     cor_xyz = uv2xyz(cor_uv,pano_W,pano_H)
     ceil_xyz = cor_xyz[cor_xyz[:,2]>0,:]
     floor_xyz = cor_xyz[cor_xyz[:,2]<0,:]
     d_floor = 1.7
+    #d_floor =  standardCeilingHeigh
     t_floor = -d_floor/floor_xyz[:,2]
     floor_3D = np.expand_dims(t_floor, axis=1) * floor_xyz
     t_ceil = floor_3D[:,0]/ceil_xyz[:,0]
     ceil_3D = np.expand_dims(t_ceil, axis=1) * ceil_xyz
     d_ceil = np.mean(t_ceil*ceil_xyz[:,2])
     ceil_3D[:,2] = d_ceil
-    new_floor_3D, new_ceil_3D = alignFloorCeil(ceil_xyz, floor_xyz, floor_3D, ceil_3D)
-    walls = getWalls(new_floor_3D, new_ceil_3D)
-    return new_floor_3D, new_ceil_3D, walls
+    new_floor_3D, new_ceil_3D = alignFloorCeil(floor_xyz, ceil_xyz, floor_3D, ceil_3D)
+    walls = getWalls3DReversed(new_floor_3D, new_ceil_3D)
+    return new_floor_3D, walls
 
 #Get objects
 def getObjects():
     return []
 
 #Get room
-def getRoom(floor, ceil, walls, objects):
+def getRoom(floor, walls, objects):
     room = {
-        'ceil' : np.array(floor),
-        'floor' : np.array(ceil),
-        'walls' : np.array(walls),
+        'floor' : np.array(floor),
+        'walls' : getWalls3D(floor),
+        'walls_out' : getOuterWalls(floor),
         'objects' : np.array(objects)
     }
     return room
@@ -187,11 +214,7 @@ def getNewPoint(P, S, T, R, RX, RY):
     P = RY @ RX @ R @ S @ T @ np.append(P, 1)
     return [np.round(P[0],3),np.round(P[1],3),np.round(P[2],3)]
 
-def rescaleRoom(room):
-    floor = room["floor"]
-    ceil = room["ceil"]
-    walls = room["walls"]
-    objects = room["objects"]
+def rescaleRoom(floor, walls, objects):
     origin_floor = walls[0][0]
     origin_ceil = walls[0][3]
     next_floor = walls[1][0]
@@ -234,13 +257,12 @@ def rescaleRoom(room):
 
     for i in range(len(floor)):
         floor[i] = getNewPoint(floor[i], S, T, R, RX, RY)
-        ceil[i] = getNewPoint(ceil[i], S, T, R, RX, RY)
         for j in range(4):
             walls[i][j] = getNewPoint(walls[i][j], S, T, R, RX, RY)
-    return getRoom(floor, ceil, walls, objects)
+    return getRoom(floor, walls, objects)
 
 def getFakeRoom():
-    ceilDataV2 = np.array([
+    floorDataV2 = np.array([
         [0, 0,  0],
         [3, 0,  0],
         [3, 0,  2],
@@ -249,8 +271,8 @@ def getFakeRoom():
         [0, 0,  4]                              
     ])
 
-
-    floorDataV2 = np.array([
+    '''
+    ceilDataV2 = np.array([
         [0, 2.5,  0],
         [3, 2.5,  0],
         [3, 2.5,  2],
@@ -258,7 +280,7 @@ def getFakeRoom():
         [5, 2.5,  4],
         [0, 2.5,  4]                           
     ])
-
+    
     wallsDataV2 = np.array([
         [
             [0, 0,  0],
@@ -297,66 +319,65 @@ def getFakeRoom():
             [0, 0,  0]
         ]
     ])
-
+    '''
     objectsDataV2 = np.array([
-        {
+        {   #bed
             'type': 1,
             'bbox': [1, 1, 2],
-            'pos': [0.5, 0, 1],
+            'pos': [0.75, 0, 1],
             'rot': [0,0,0,1],
             'scale': [1,1,1]
         },
-        
-            {
+        {   #table  
             'type': 3,
             'bbox': [2, 1, 1],
             'pos': [4.5, 0, 3],
             'rot': [0,-0.707,0,0.707],
             'scale': [1,1,1]
         },
-            {
+        {   #window
             'type': 5,
             'bbox': [1, 1, 0.2],
             'pos': [3.5, 1, 4.1],
             'rot': [0,1,0,0],
             'scale': [1,1,1]
         },
-            {
+        {   #chair
             'type': 7,
-            'bbox': [1, 1, 1],
-            'pos': [4.5, 0, 4],
+            'bbox': [0.5, 0.5, 0.5],
+            'pos': [3.5, 0, 3],
             'rot': [0,-0.707,0,-0.707],
             'scale': [1,1,1]
         },
-            {
+        {   #sofa
             'type': 9,
             'bbox': [2, 1, 1],
             'pos': [1.5, 0, 3.5],
             'rot': [0,1,0,0],
             'scale': [1,1,1]
         },
-            {
+        {   #door
             'type': 10,
             'bbox': [1, 2, 0.2],
             'pos': [3.1, 0, 0.5],
             'rot': [0, -0.707, 0, 0.707],
             'scale': [1,1,1]
         },
-            {
+        {   #cabinet
             'type': 11,
             'bbox': [1.5, 2, 0.5],
             'pos': [0.25, 0, 3],
             'rot': [0, -0.707, 0, -0.707],
             'scale': [1,1,1]
         },
-            {
+        {   #bedside
             'type': 12,
             'bbox': [0.5, 0.5, 0.5],
-            'pos': [1.25, 0, 0.25],
+            'pos': [2, 0, 0.25],
             'rot': [0, 0, 0, 1],
             'scale': [1,1,1]
         },
-            {
+        {   #shelf
             'type': 14,
             'bbox': [1, 2, 0.5],
             'pos': [2.75, 0, 1.5],
@@ -366,9 +387,9 @@ def getFakeRoom():
     ])
 
     RoomV2 = {
-        'ceil' : ceilDataV2,
         'floor' : floorDataV2,
-        'walls' : wallsDataV2,
+        'walls' : getWalls3D(floorDataV2),
+        'walls_out' : getOuterWalls(floorDataV2),
         'objects' : objectsDataV2
     }
     return RoomV2
@@ -378,9 +399,8 @@ def convert():
     detInputData()
     cor_uv = cmap2corners(cmap)
     walls_image, walls_info = getWallMap(emap)
-    floor, ceil, walls = getCorrectedFloorCeilWalls(cor_uv)
+    floor, walls = getCorrectedFloorCeilWalls(cor_uv)
     objects = getObjects()
-    room = getRoom(floor, ceil, walls, objects)
-    new_room = rescaleRoom(room)
-    new_room = getFakeRoom()
+    new_room = rescaleRoom(floor, walls, objects)
+    #new_room = getFakeRoom()
     return new_room

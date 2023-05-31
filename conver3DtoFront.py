@@ -102,10 +102,6 @@ def get3DFrontTemplate():
     }
 
 def is_point_in_triangle(point, vertex1, vertex2, vertex3):
-    #print(point)
-    #print(vertex1)
-    #print(vertex2)
-    #print(vertex3)
     # Check if a point is inside the triangle formed by three vertices
     area = 0.5 * (-vertex2[2] * vertex3[0] + vertex1[2] * (-vertex2[0] + vertex3[0]) + vertex1[0] * (vertex2[2] - vertex3[2]) + vertex2[0] * vertex3[2])
     #print(area)
@@ -151,25 +147,32 @@ def getMeshFC(points, type):
     mesh['uv'] = []
     mesh['faces'] = []
     mesh['material'] = "sge/2592cffe-9599-404e-9703-4f833fe1d20c/2740"
-    mesh['type'] = "Floor" if type == 0 else "Ceiling"
+    mesh['type'] = "Floor" #if type == 1 else "Ceiling"
     #countId += 1
 
     triangles = ear_clip_triangulation(points)
 
-    normalY = 1 if type == 0 else -1 
+    normalY = 0 if type == 0 else 2.4 
 
     for tri in triangles:
         for p in tri:
             mesh['xyz'].append(p[0])
-            mesh['xyz'].append(p[1])
+            mesh['xyz'].append(normalY)
             mesh['xyz'].append(p[2])
-            mesh['normal'].append(0)
-            mesh['normal'].append(normalY)
-            mesh['normal'].append(0)
+            mesh['normal'].append(1)
+            mesh['normal'].append(1)
+            mesh['normal'].append(1)
             mesh['uv'].append(p[0])
             mesh['uv'].append(p[2])
             mesh['faces'].append(floorId)
-        ++floorId
+            floorId = floorId + 1
+
+    if type == 0:
+        for i in range(int(len(mesh['faces'])/3)):
+            tmp = mesh['faces'][i*3 + 1]
+            mesh['faces'][i*3 + 1] = mesh['faces'][i*3 + 2]
+            mesh['faces'][i*3 + 2] = tmp
+
     return mesh
 
 def getNormal(triangle):
@@ -188,19 +191,21 @@ def getNormal(triangle):
     normal = normal / np.linalg.norm(normal)
     return normal
 
-def getMeshWall(wall):
+def getMeshWall(wall, type):
     mesh = {}
     mesh['aid'] = []
     mesh['jid'] = ''
     mesh['xyz'] = [ wall[0][0], wall[0][1], wall[0][2], 
-            wall[2][0], wall[2][1], wall[2][2],
-            wall[1][0], wall[1][1], wall[1][2], 
-            wall[0][0], wall[0][1], wall[0][2], 
-            wall[3][0], wall[3][1], wall[3][2],
-            wall[2][0], wall[2][1], wall[2][2]
+        wall[2][0], wall[2][1], wall[2][2],
+        wall[1][0], wall[1][1], wall[1][2], 
+        wall[0][0], wall[0][1], wall[0][2], 
+        wall[3][0], wall[3][1], wall[3][2],
+        wall[2][0], wall[2][1], wall[2][2]
     ]
-    norm1 = getNormal([wall[0], wall[2], wall[1]])
+
+    norm1 = getNormal([wall[0], wall[1], wall[2]])
     
+    '''
     mesh['normal'] = [
         norm1[0], norm1[1], norm1[2], 
         norm1[0], norm1[1], norm1[2],
@@ -209,15 +214,93 @@ def getMeshWall(wall):
         norm1[0], norm1[1], norm1[2],
         norm1[0], norm1[1], norm1[2]
     ] 
+    '''
+    
+    mesh['normal'] = [
+        0, 1, 0, 
+        0, 1, 0,
+        0, 1, 0, 
+        0, 1, 0,
+        0, 1, 0,
+        0, 1, 0
+    ] 
+    mesh['uv'] = [  
+        0.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+        0.0, 0.0, 1.0, 0.0, 1.0, 1.0
+    ]
+    if type:
+        mesh['faces'] = [0, 1, 2, 3, 4, 5]
+        mesh['type'] = "WallInner"
+    else:
+        mesh['faces'] = [0, 2, 1, 3, 5, 4]
+        mesh['type'] = "WallOuter"
+    
+    mesh['material'] = "sge/2592cffe-9599-404e-9703-4f833fe1d20c/2740"
+
+    return mesh
+
+def getMeshTopWall(wall_in, wall_out):
+    mesh = {}
+    mesh['aid'] = []
+    mesh['jid'] = ''
+    mesh['xyz'] = [ wall_in[1][0], wall_in[1][1], wall_in[1][2], 
+        wall_out[2][0], wall_out[2][1], wall_out[2][2],
+        wall_out[1][0], wall_out[1][1], wall_out[1][2], 
+        wall_in[1][0], wall_in[1][1], wall_in[1][2], 
+        wall_in[2][0], wall_in[2][1], wall_in[2][2],
+        wall_out[2][0], wall_out[2][1], wall_out[2][2]
+    ]
+
+    mesh['normal'] = [
+        1, 1, 1, 
+        1, 1, 1,
+        1, 1, 1, 
+        1, 1, 1,
+        1, 1, 1,
+        1, 1, 1
+    ] 
     
     mesh['uv'] = [  
         0.0, 0.0, 1.0, 1.0, 0.0, 1.0,
         0.0, 0.0, 1.0, 0.0, 1.0, 1.0
     ]
-    
-    mesh['faces'] = [0, 0, 0, 1, 1, 1]
+
+    #mesh['faces'] = [0, 2, 1, 3, 5, 4]
+    mesh['faces'] = [0, 1, 2, 3, 4, 5]
     mesh['material'] = "sge/2592cffe-9599-404e-9703-4f833fe1d20c/2740"
-    mesh['type'] = "WallInner"
+    mesh['type'] = "WallTop"
+    return mesh
+
+def getMeshBottomWall(wall_in, wall_out):
+    mesh = {}
+    mesh['aid'] = []
+    mesh['jid'] = ''
+    mesh['xyz'] = [ wall_in[0][0], wall_in[0][1], wall_in[0][2], 
+        wall_out[3][0], wall_out[3][1], wall_out[3][2],
+        wall_out[0][0], wall_out[0][1], wall_out[0][2], 
+        wall_in[0][0], wall_in[0][1], wall_in[0][2], 
+        wall_in[3][0], wall_in[3][1], wall_in[3][2],
+        wall_out[3][0], wall_out[3][1], wall_out[3][2]
+    ]
+
+    mesh['normal'] = [
+        1, 1, 1, 
+        1, 1, 1,
+        1, 1, 1, 
+        1, 1, 1,
+        1, 1, 1,
+        1, 1, 1
+    ] 
+    
+    mesh['uv'] = [  
+        0.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+        0.0, 0.0, 1.0, 0.0, 1.0, 1.0
+    ]
+
+    mesh['faces'] = [0, 2, 1, 3, 5, 4]
+    #mesh['faces'] = [0, 1, 2, 3, 4, 5]
+    mesh['material'] = "sge/2592cffe-9599-404e-9703-4f833fe1d20c/2740"
+    mesh['type'] = "WallBottom"
     return mesh
 
 #Main code
@@ -265,10 +348,16 @@ def convert(room, style):
     countId = 1
     #Get meshes
     mesh = []
-    mesh.append(getMeshFC(room['floor'].tolist(), 0))
-    mesh.append(getMeshFC(room['ceil'].tolist(), 1))
-    for wall in room['walls']:
-        mesh.append(getMeshWall(wall))
+    mesh.append(getMeshFC(room['floor'].tolist(), 0)) #Floor
+    mesh.append(getMeshFC(room['floor'].tolist(), 1)) #Ceiling
+    #for wall in room['walls']:
+    for i in range(len(room['walls'])):
+        wall_in = room['walls'][i]
+        wall_out = room['walls_out'][i]
+        mesh.append(getMeshWall(wall_in, True))
+        mesh.append(getMeshWall(wall_out, False))
+        mesh.append(getMeshTopWall(wall_in, wall_out))
+        mesh.append(getMeshBottomWall(wall_in, wall_out))
     for msh in mesh:
         tmp = str(countId) + "/0"
         my_dict = {'uid': tmp}
