@@ -8,12 +8,12 @@ ItemsT = {
     #2:  {'color': [0,128,0]     ,'name': 'painting' , 'type' : 1 ,'future': 'none'},
     3:  {'color': [128,128,0]   ,'name': 'table'    , 'type' : 3 ,'future': 'table'},
     #4:  {'color': [0,0,128]     ,'name': 'mirror'   , 'type' : 1 ,'future': 'none'},
-    ###5:  {'color': [128,0,128]   ,'name': 'window'   , 'type' : 1 ,'future': 'none'},
+    5:  {'color': [128,0,128]   ,'name': 'window'   , 'type' : 1 ,'future': 'none'},
     #6:  {'color': [0,128,128]   ,'name': 'curtain'  , 'type' : 1 ,'future': 'none'},
     7:  {'color': [128,128,128] ,'name': 'chair'    , 'type' : 3 ,'future': 'chair'},
     #8:  {'color': [64,0,0]      ,'name': 'light'    , 'type' : 4 ,'future': 'none'},
     9:  {'color': [192,0,0]     ,'name': 'sofa'     , 'type' : 3 ,'future': 'sofa'},
-    ###10: {'color': [64,128,0]    ,'name': 'door'     , 'type' : 1 ,'future': 'none'},
+    10: {'color': [64,128,0]    ,'name': 'door'     , 'type' : 1 ,'future': 'none'},
     11: {'color': [192,128,0]   ,'name': 'cabinet'  , 'type' : 2 ,'future': 'cabinet'},
     12: {'color': [64,0,128]    ,'name': 'bedside'  , 'type' : 3 ,'future': 'nightstand'},
     #13: {'color': [192,0,128]   ,'name': 'tv'       , 'type' : 4 ,'future': 'none'},
@@ -203,19 +203,6 @@ def getMeshWall(wall, type):
         wall[2][0], wall[2][1], wall[2][2]
     ]
 
-    norm1 = getNormal([wall[0], wall[1], wall[2]])
-    
-    '''
-    mesh['normal'] = [
-        norm1[0], norm1[1], norm1[2], 
-        norm1[0], norm1[1], norm1[2],
-        norm1[0], norm1[1], norm1[2], 
-        norm1[0], norm1[1], norm1[2], 
-        norm1[0], norm1[1], norm1[2],
-        norm1[0], norm1[1], norm1[2]
-    ] 
-    '''
-    
     mesh['normal'] = [
         0, 1, 0, 
         0, 1, 0,
@@ -303,6 +290,107 @@ def getMeshBottomWall(wall_in, wall_out):
     mesh['type'] = "WallBottom"
     return mesh
 
+def getNewPoint(P, S, T, R):
+    P =  S @ T @ R @ np.append(P, 1)
+    return [np.round(P[0],3),np.round(P[1],3),np.round(P[2],3)]
+
+def getSimpleMesh(p0, p1, p2, p3):
+    mesh = {}
+    mesh['aid'] = []
+    mesh['jid'] = ''
+    mesh['xyz'] = [ 
+        p0[0], p0[1], p0[2], 
+        p2[0], p2[1], p2[2],
+        p1[0], p1[1], p1[2], 
+        p0[0], p0[1], p0[2], 
+        p3[0], p3[1], p3[2],
+        p2[0], p2[1], p2[2]
+    ]
+    mesh['normal'] = [
+        0.5, 0, 0.5, 
+        0.5, 0, 0.5,
+        0.5, 0, 0.5, 
+        0.5, 0, 0.5,
+        0.5, 0, 0.5,
+        0.5, 0, 0.5
+    ] 
+    mesh['uv'] = [  
+        0.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+        0.0, 0.0, 1.0, 0.0, 1.0, 1.0
+    ]
+    mesh['faces'] = [0, 1, 2, 3, 4, 5]
+    mesh['material'] = "sge/2592cffe-9599-404e-9703-4f833fe1d20c/2740"
+    mesh['type'] = "Window" #if type == 1 else "Ceiling"
+    return mesh
+
+def getInWallMesh(obj):
+    bbox = obj['bbox']
+    pos = obj['pos']
+    rot = obj['rot']
+    scale = obj['scale']
+
+    T = np.array([  [1, 0, 0, pos[0]],
+                    [0, 1, 0, pos[1]],
+                    [0, 0, 1, pos[2]],
+                    [0, 0, 0, 1]])
+    # Scaling matrix
+    S = np.array([[scale[0], 0, 0, 0],
+                    [0, scale[1], 0, 0],
+                    [0, 0, scale[2], 0],
+                    [0, 0, 0, 1]])
+    w = rot[0]
+    x = rot[1]
+    y = rot[2]
+    z = rot[3]
+    
+    xx = 1 - 2 * (y ** 2) - 2 * (z ** 2)
+    xy = 2 * x * y - 2 * w * z
+    xz = 2 * x * z + 2 * w * y
+
+    yx = 2 * x * y + 2 * w * z
+    yy = 1 - 2 * (x ** 2) - 2 * (z ** 2)
+    yz = 2 * y * z - 2 * w * x
+
+    zx = 2 * x * z - 2 * w * y
+    zy = 2 * y * z + 2 * w * x
+    zz = 1 - 2 * (x ** 2) - 2 * (y ** 2)
+
+    R = np.array([[xx, xy, xz, 0],
+                [yx, yy, yz, 0],
+                [zx, zy, zz, 0],
+                [0,  0, 0, 1]])
+
+    pos_ini = [bbox[0]/2, bbox[1]/2, bbox[2]/2]
+    pos_end = [-bbox[0]/2, -bbox[1]/2, -bbox[2]/2]
+
+    #
+
+    pos_0 = [pos_end[0], pos_end[1], pos_ini[2]]
+    pos_1 = [pos_end[0], pos_ini[1], pos_ini[2]]
+    pos_2 = pos_ini
+    pos_3 = [pos_ini[0], pos_end[1], pos_ini[2]]
+
+    p0 = getNewPoint(pos_0, S, T, R)
+    p1 = getNewPoint(pos_1, S, T, R)
+    p2 = getNewPoint(pos_2, S, T, R)
+    p3 = getNewPoint(pos_3, S, T, R)
+
+    meshFront = getSimpleMesh(p0, p1, p2, p3)
+
+    pos_0 = [pos_end[0], pos_ini[1], pos_end[2]]
+    pos_1 = pos_end
+    pos_2 = [pos_ini[0], pos_end[1], pos_end[2]]
+    pos_3 = [pos_ini[0], pos_ini[1], pos_end[2]]
+
+    p0 = getNewPoint(pos_0, S, T, R)
+    p1 = getNewPoint(pos_1, S, T, R)
+    p2 = getNewPoint(pos_2, S, T, R)
+    p3 = getNewPoint(pos_3, S, T, R)
+
+    meshBack = getSimpleMesh(p0, p1, p2, p3)
+
+    return meshFront, meshBack
+
 #Main code
 def convert(room, style):
     count = 1
@@ -312,42 +400,46 @@ def convert(room, style):
     objects = room['objects']
     children = []
     furniture = []
-    
+    mesh = []
     #Get furniture
     for obj in objects:
         if obj['type'] in ItemsT:
-            category = ItemsT[obj['type']]["future"]
-            if category:
-                bbox = obj['bbox']
-                future_object = dataset_furniture.get_closest_furniture_to_box_style(category, bbox, style)
-                if future_object == None:
-                    future_object = dataset_furniture.get_closest_furniture_to_box(category, bbox)
-                if future_object:
-                    child = {}
-                    child['ref'] = future_object.model_uid
-                    child['instanceid'] = "furniture/" + str(count)
-                    child['pos'] = obj['pos']
-                    child['rot'] = obj['rot']
-                    child['scale'] = obj['scale']
-                    children.append(child)
-                    f = {}
-                    f['uid'] = future_object.model_uid
-                    f['jid'] = future_object.model_jid
-                    f['category'] = future_object.model_info.category
-                    f['aid'] = []
-                    f['size'] = True
-                    f['bbox'] = obj['bbox']
-                    f['title'] = ''
-                    f['sourceCategoryId'] = "14d0d6c8-6857-4bbf-8c4a-26bf6c25c968"
-                    f['valid'] = True
-                    furniture.append(f)
-                    count += 1
+            name = ItemsT[obj['type']]["name"]
+            if name == "door" or name == 'window':
+                front, back = getInWallMesh(obj)
+                mesh.append(front)
+                mesh.append(back)
+            else:
+                category = ItemsT[obj['type']]["future"]
+                if category:
+                    bbox = obj['bbox']
+                    future_object = dataset_furniture.get_closest_furniture_to_box_style(category, bbox, style)
+                    if future_object == None:
+                        future_object = dataset_furniture.get_closest_furniture_to_box(category, bbox)
+                    if future_object:
+                        child = {}
+                        child['ref'] = future_object.model_uid
+                        child['instanceid'] = "furniture/" + str(count)
+                        child['pos'] = obj['pos']
+                        child['rot'] = obj['rot']
+                        child['scale'] = obj['scale']
+                        children.append(child)
+                        f = {}
+                        f['uid'] = future_object.model_uid
+                        f['jid'] = future_object.model_jid
+                        f['category'] = future_object.model_info.category
+                        f['aid'] = []
+                        f['size'] = True
+                        f['bbox'] = obj['bbox']
+                        f['title'] = ''
+                        f['sourceCategoryId'] = "14d0d6c8-6857-4bbf-8c4a-26bf6c25c968"
+                        f['valid'] = True
+                        furniture.append(f)
+                        count += 1
     room3dfront["furniture"] = furniture 
-    
-    #global countId
+
     countId = 1
     #Get meshes
-    mesh = []
     mesh.append(getMeshFC(room['floor'].tolist(), 0)) #Floor
     mesh.append(getMeshFC(room['floor'].tolist(), 1)) #Ceiling
     #for wall in room['walls']:

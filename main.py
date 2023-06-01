@@ -137,7 +137,6 @@ def main(argv):
     global config
     config = get_config(args.config_path)
     #executeCFLandPB()
-    convert2Dto3D.test()
     dict3D = convert2Dto3D.convert()
     front3D = conver3DtoFront.convert(dict3D, args.style)
     jsonPath = args.path_to_output_folder + args.name_output_file

@@ -27,9 +27,6 @@ from skimage.morphology import (erosion, dilation, closing, opening, disk, binar
 
 standardCeilingHeigh = 2.4
 
-def test():
-    print("Works")
-
 def detInputData():
     # load image
     global img
@@ -318,8 +315,8 @@ def getFakeRoom():
             [0, 2.5,  0],
             [0, 0,  0]
         ]
-    ])
-    '''
+    ])'''
+    
     objectsDataV2 = np.array([
         {   #bed
             'type': 1,
@@ -337,8 +334,8 @@ def getFakeRoom():
         },
         {   #window
             'type': 5,
-            'bbox': [1, 1, 0.2],
-            'pos': [3.5, 1, 4.1],
+            'bbox': [1, 1, 0.12],
+            'pos': [3, 1.5, 4.05],
             'rot': [0,1,0,0],
             'scale': [1,1,1]
         },
@@ -358,8 +355,8 @@ def getFakeRoom():
         },
         {   #door
             'type': 10,
-            'bbox': [1, 2, 0.2],
-            'pos': [3.1, 0, 0.5],
+            'bbox': [1, 2, 0.12],
+            'pos': [3.05, 1, 0.5],
             'rot': [0, -0.707, 0, 0.707],
             'scale': [1,1,1]
         },
@@ -385,6 +382,69 @@ def getFakeRoom():
             'scale': [1,1,1]
         }
     ])
+    
+    '''
+    objectsDataV2 = np.array([
+        {   #bed
+            'type': 1,
+            'bbox': [1, 1, 2],
+            'pos': [0.75, 0, 1],
+            'rot': [0,0,0,1],
+            'scale': [1,1,1]
+        },
+        {   #table  
+            'type': 3,
+            'bbox': [2, 1, 1],
+            'pos': [4.5, 0, 3],
+            'rot': [0,-0.707,0,0.707],
+            'scale': [1,1,1]
+        },
+        {   #window
+            'type': 5,
+            'pos_ini': [3.5, 1, 3.99],
+            'pos_end': [2.5, 2, 3.99]
+        },
+        {   #chair
+            'type': 7,
+            'bbox': [0.5, 0.5, 0.5],
+            'pos': [3.5, 0, 3],
+            'rot': [0,-0.707,0,-0.707],
+            'scale': [1,1,1]
+        },
+        {   #sofa
+            'type': 9,
+            'bbox': [2, 1, 1],
+            'pos': [1.5, 0, 3.5],
+            'rot': [0,1,0,0],
+            'scale': [1,1,1]
+        },
+        {   #door
+            'type': 10,
+            'pos_ini': [2.99, 0, 0.1],
+            'pos_end': [2.99, 2, 0.9]
+        },
+        {   #cabinet
+            'type': 11,
+            'bbox': [1.5, 2, 0.5],
+            'pos': [0.25, 0, 3],
+            'rot': [0, -0.707, 0, -0.707],
+            'scale': [1,1,1]
+        },
+        {   #bedside
+            'type': 12,
+            'bbox': [0.5, 0.5, 0.5],
+            'pos': [2, 0, 0.25],
+            'rot': [0, 0, 0, 1],
+            'scale': [1,1,1]
+        },
+        {   #shelf
+            'type': 14,
+            'bbox': [1, 2, 0.5],
+            'pos': [2.75, 0, 1.5],
+            'rot': [0, -0.707, 0, 0.707],
+            'scale': [1,1,1]
+        }
+    ])'''
 
     RoomV2 = {
         'floor' : floorDataV2,
@@ -402,5 +462,5 @@ def convert():
     floor, walls = getCorrectedFloorCeilWalls(cor_uv)
     objects = getObjects()
     new_room = rescaleRoom(floor, walls, objects)
-    #new_room = getFakeRoom()
+    new_room = getFakeRoom()
     return new_room
