@@ -411,6 +411,7 @@ class OrderedDataset(DatasetDecoratorBase):
 
 class Autoregressive(DatasetDecoratorBase):
     def __getitem__(self, idx):
+        print("Autoregressive")
         sample_params = self._dataset[idx]
 
         sample_params_target = {}

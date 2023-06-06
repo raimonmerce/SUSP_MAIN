@@ -47,6 +47,7 @@ class InfiniteDataset(IterableDataset):
 class BaseDataset(Dataset):
     """Implements the interface for all datasets that consist of scenes."""
     def __init__(self, scenes):
+        print(len(scenes))
         assert len(scenes) > 0
         self.scenes = scenes
 

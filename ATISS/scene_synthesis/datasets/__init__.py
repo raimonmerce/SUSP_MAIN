@@ -58,7 +58,6 @@ def get_dataset_raw_and_encoded(
         augmentations,
         config.get("box_ordering", None)
     )
-
     return dataset, encoding
 
 

@@ -85,7 +85,7 @@ def get3DFrontTemplate():
             'room' : [
                 {
                     'type' : "Bedroom",
-                    #'instanceid' : "LivingDiningRoom-4017",
+                    'instanceid' : "generate",
                     'pos' : [0,0,0],
                     'rot' : [0,0,0,1],
                     'scale' : [1,1,1],

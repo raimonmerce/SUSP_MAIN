@@ -1,0 +1,32 @@
+Preprocess
+
+python3 preprocess_data.py ../../ATISS_extra/output ../../output ../../../../../../media/raimon/SSD/3Dfront/3D-FUTURE-model ../../../../../../media/raimon/SSD/3Dfront/3D-FUTURE-model/model_info.json ../demo/floor_plan_texture_images --dataset_filtering threed_front_bedroom
+
+python3 preprocess_data.py ../../ATISS_extra/output3 ../../../../../../media/raimon/SSD/3Dfront/3D-FRONT ../../../../../../media/raimon/SSD/3Dfront/3D-FUTURE-model ../../../../../../media/raimon/SSD/3Dfront/3D-FUTURE-model/model_info.json ../demo/floor_plan_texture_images --dataset_filtering threed_front_bedroom
+
+Pickle
+
+python3 pickle_threed_future_dataset.py ../../ATISS_extra/pickle/ ../../../../../../media/raimon/SSD/3Dfront/3D-FRONT ../../../../../../media/raimon/SSD/3Dfront/3D-FUTURE-model ../../../../../../media/raimon/SSD/3Dfront/3D-FUTURE-model/model_info.json --dataset_filtering threed_front_bedroom --annotation_file ../config/bedroom_threed_front_splits_2.csv
+
+python3 generate_scenes.py ../config/test2_config.yaml ../../ATISS_extra/scene_generation ../../ATISS_extra/pickle/threed_future_model_bedroom.pkl ../demo/floor_plan_texture_images --weight_file ../../ATISS_extra/test_train/R6DVCDX89/model_06500 --scene_id generate
+
+python3 generate_scenes.py ../config/test2_config.yaml ../../ATISS_extra/scene_generation ../../ATISS_extra/pickle/threed_future_model_bedroom_old.pkl ../demo/floor_plan_texture_images --weight_file ../../ATISS_extra/test_train/R6DVCDX89/model_06500
+
+python3 generate_scenes.py ../config/test_config.yaml ../../ATISS_extra/scene_generation ../../ATISS_extra/pickle/threed_future_model_bedroom_old.pkl ../demo/floor_plan_texture_images --weight_file ../../ATISS_extra/test_train/R6DVCDX89/model_06500
+
+
+Traceback (most recent call last):
+  File "generate_scenes.py", line 284, in <module>
+    main(sys.argv[1:])
+  File "generate_scenes.py", line 174, in main
+    network, _, _ = build_network(
+  File "/home/raimon/Documents/SUSP_MAIN/ATISS/scripts/scene_synthesis/networks/__init__.py", line 108, in build_network
+    network.load_state_dict(
+  File "/home/raimon/.local/lib/python3.8/site-packages/torch/nn/modules/module.py", line 846, in load_state_dict
+    raise RuntimeError('Error(s) in loading state_dict for {}:\n\t{}'.format(
+RuntimeError: Error(s) in loading state_dict for AutoregressiveTransformer:
+	size mismatch for fc_class.weight: copying a param with shape torch.Size([64, 23]) from checkpoint, the shape in current model is torch.Size([64, 9]).
+	size mismatch for hidden2output.class_layer.weight: copying a param with shape torch.Size([23, 512]) from checkpoint, the shape in current model is torch.Size([9, 512]).
+	size mismatch for hidden2output.class_layer.bias: copying a param with shape torch.Size([23]) from checkpoint, the shape in current model is torch.Size([9]).
+	size mismatch for hidden2output.fc_class_labels.weight: copying a param with shape torch.Size([64, 23]) from checkpoint, the shape in current model is torch.Size([64, 9]).
+(atiss) raimon@Atenea:~/Documents

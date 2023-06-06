@@ -172,14 +172,16 @@ class ThreedFront(BaseDataset):
             path_to_models,
             path_to_room_masks_dir
         )
+
         bounds = None
         if path_to_bounds:
             bounds = np.load(path_to_bounds, allow_pickle=True)
 
+        #filter_fn = lambda s: s
         return cls([s for s in map(filter_fn, scenes) if s], bounds)
 
 
-class CachedRoom(object):
+class CachedRoom(object): #Important
     def __init__(
         self,
         scene_id,
@@ -256,7 +258,7 @@ class CachedThreedFront(ThreedFront):
     def __getitem__(self, i):
         D = np.load(self._path_to_rooms[i])
         
-        return CachedRoom(
+        return CachedRoom( #important
             scene_id=D["scene_id"],
             room_layout=self._get_room_layout(D["room_layout"]),
             floor_plan_vertices=D["floor_plan_vertices"],
