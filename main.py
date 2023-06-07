@@ -6,6 +6,7 @@ import json
 import os
 import convert2Dto3D
 import conver3DtoFront
+import setupSceneSynthesis
 from trescope import Trescope
 from trescope.config import Scatter3DConfig
 from trescope.config import FRONT3DConfig
@@ -63,9 +64,9 @@ def get_args(argv):
     Minimalist
     '''
     parser.add_argument(
-        "--mode_ss",
-        default="visualize",
-        help="Mode of scene synthesis: visualize"
+        "--ss",
+        action="store_true",
+        help="Prepares files to run Scene Synthesis"
     )
     parser.add_argument(
         "--config_path",
@@ -142,24 +143,20 @@ def main(argv):
     jsonPath = args.path_to_output_folder + args.name_output_file
     with open(jsonPath, 'w') as f:
         json.dump(front3D, f)
-    if (args.mode_ss == "visualize"):
-        #Visualize Trescope
-        Trescope().initialize(True, simpleDisplayOutputs(1, 1))
-        Trescope().selectOutput(0).plotFRONT3D(jsonPath).withConfig(
-            FRONT3DConfig()
-            .view('top')
-            .renderType('color')
-            .shapeLocalSource(config['path_future'])
-            .hiddenMeshes(['Ceiling', 'SlabTop', 'ExtrusionCustomizedCeilingModel']))
-    elif (args.mode_ss == "completion"):
-        #Scene Synthesis ATISS Scene Completion
-        comand = "conda run -n " + config['conda_atiss'] + " python3 scene_completion.py " + config['path_to_config_yaml'] + " " + config['path_to_output_dir'] + " " + config['path_to_3d_future_pickled_data'] + " " + config['path_to_floor_plan_texture_images'] + " --weight_file " + config['path_to_weight_file'] + " --scene_id Bedroom-68718 --n_sequences 1 --with_rotating_camera"
-        workinwDirectory = "ATISS/scripts"
-        process = subprocess.Popen(comand, shell=True, cwd=workinwDirectory)    
-        return_code = process.wait()
-    else: 
-        #Scene Synthesis ATISS Object Suggestions
-        return False
+    
+    #Visualize Trescope
+    Trescope().initialize(True, simpleDisplayOutputs(1, 1))
+    Trescope().selectOutput(0).plotFRONT3D(jsonPath).withConfig(
+        FRONT3DConfig()
+        .view('top')
+        .renderType('color')
+        .shapeLocalSource(config['path_future'])
+        .hiddenMeshes(['Ceiling', 'SlabTop', 'ExtrusionCustomizedCeilingModel']))
+    
+    if args.ss:
+        #Prepare Scene Synthesis
+        setupSceneSynthesis.setup()
+        
 
 if __name__ == "__main__":
     main(sys.argv[1:])

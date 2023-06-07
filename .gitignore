@@ -10,3 +10,4 @@ config/
 __pycache__/
 categories.py
 model_info.json
+main_commands.txt
