@@ -11,3 +11,8 @@ __pycache__/
 categories.py
 model_info.json
 main_commands.txt
+Total3D/demo/
+Total3D/out/
+Total3D/libs/
+Total3D/data/
+Total3D/external/
