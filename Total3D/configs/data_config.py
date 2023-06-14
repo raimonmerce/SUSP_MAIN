@@ -29,7 +29,7 @@ NYU40CLASSES = ['void',
                 'clothes', 'ceiling', 'books', 'refridgerator', 'television',
                 'paper', 'towel', 'shower_curtain', 'box', 'whiteboard',
                 'person', 'night_stand', 'toilet', 'sink', 'light',
-                'bathtub', 'bag', 'tv', 'otherfurniture', 'otherprop']
+                'bathtub', 'bag', 'tv', 'bedside', 'otherprop']
 
 NYU37_TO_PIX3D_CLS_MAPPING = {0:0, 1:0, 2:0, 3:8, 4:1, 5:3, 6:5, 7:6, 8:8, 9:2, 10:2, 11:0, 12:0, 13:2, 14:4,
                               15:2, 16:2, 17:8, 18:0, 19:0, 20:0, 21:0, 22:0, 23:0, 24:8, 25:8, 26:0, 27:0, 28:0,

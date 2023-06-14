@@ -29,8 +29,8 @@ data_transforms = transforms.Compose([
 def parse_detections(detections):
     bdb2D_pos = []
     size_cls = []
-    for det in detections:
-        bdb2D_pos.append(det['bbox'])
+    for det in detections.values():
+        bdb2D_pos.append([float(det['bbox'][0]), float(det['bbox'][1]), float(det['bbox'][2]), float(det['bbox'][3]),])
         size_cls.append(NYU40CLASSES.index(det['type']))
     return bdb2D_pos, size_cls
 
@@ -54,31 +54,25 @@ def get_g_features(bdb2D_pos):
     return pe.view(n_objects * n_objects, rel_cfg.d_g)
 
 def load_demo_data(demo_path, device):
-    img_path = os.path.join(demo_path, 'img.jpg')
+    img_path = os.path.join(demo_path, 'test.jpg')
     assert os.path.exists(img_path)
 
     cam_K_path = os.path.join(demo_path, 'cam_K.txt')
     assert os.path.exists(cam_K_path)
 
-    detection_path = os.path.join(demo_path, 'detections.json')
+    detection_path = os.path.join(demo_path, 'test_boxes.json')
     assert detection_path
 
     '''preprocess'''
     image = Image.open(img_path).convert('RGB')
     cam_K = np.loadtxt(cam_K_path)
+    print("cam_K")
+    print(cam_K)
     with open(detection_path, 'r') as file:
         detections = json.load(file)
     boxes = dict()
 
-    print("detections")
-    print(detections)
-
     bdb2D_pos, size_cls = parse_detections(detections)
-
-    print("bdb2D_pos")
-    print(bdb2D_pos)
-    print("size_cls")
-    print(size_cls)
 
     # obtain geometric features
     boxes['g_feature'] = get_g_features(bdb2D_pos)
@@ -191,6 +185,17 @@ def run(cfg):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     # save layout
+
+    print("lo_bdb3D_out")
+    print(lo_bdb3D_out)
+
+    print("bdb3D_out_form_cpu")
+    print(len(bdb3D_out_form_cpu))
+    print(bdb3D_out_form_cpu)
+
+    print("cam_R_out")
+    print(cam_R_out)
+
     savemat(os.path.join(save_path, 'layout.mat'),
             mdict={'layout': lo_bdb3D_out[0, :, :].cpu().numpy()})
     # save bounding boxes and camera poses
@@ -231,7 +236,7 @@ def run(cfg):
 
     vtk_objects, pre_boxes = format_mesh(glob(os.path.join(save_path, '*.obj')), pre_boxes)
 
-    image = np.array(Image.open(os.path.join(cfg.config['demo_path'], 'img.jpg')).convert('RGB'))
+    image = np.array(Image.open(os.path.join(cfg.config['demo_path'], 'test.jpg')).convert('RGB'))
     cam_K = np.loadtxt(os.path.join(cfg.config['demo_path'], 'cam_K.txt'))
 
     scene_box = Box(image, None, cam_K, None, pre_cam_R, None, pre_layout, None, pre_boxes, 'prediction', output_mesh = vtk_objects)
