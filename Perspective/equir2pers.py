@@ -1,15 +1,26 @@
 import os
 import cv2 
-import lib.Equirec2Perspec as E2P
-import lib.Perspec2Equirec as P2E
-import lib.multi_Perspec2Equirec as m_P2E
+import Perspective.lib.Equirec2Perspec as E2P
+import Perspective.lib.Perspec2Equirec as P2E
+import Perspective.lib.multi_Perspec2Equirec as m_P2E
 import glob
 import sys
 import argparse
 
+def equir2pers_save(input_img, output_img, FOV, theta, phi, height, width):
+    equ = E2P.Equirectangular(input_img)    # Load equirectangular image
 
+    img = equ.GetPerspective(FOV, theta, phi, height, width)  # Specify parameters(FOV, theta, phi, height, width)
+    cv2.imwrite(output_img, img)
 
-def equir2pers(argv):
+def equir2pers(input_img, output_img, FOV, theta, phi, height, width):
+    equ = E2P.Equirectangular(input_img)    # Load equirectangular image
+
+    img = equ.GetPerspective(FOV, theta, phi, height, width)  # Specify parameters(FOV, theta, phi, height, width)
+    cv2.imwrite(output_img, img)
+    return img
+
+def getArgs(argv):
 
     #
     # FOV unit is degree
@@ -79,16 +90,8 @@ def equir2pers(argv):
     height = args.height
     width = args.width
 
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-    
-    equ = E2P.Equirectangular(input_img)    # Load equirectangular image
-
-    img = equ.GetPerspective(FOV, theta, phi, height, width)  # Specify parameters(FOV, theta, phi, height, width)
-    output1 = output_dir +  '/perspective.png'
-    cv2.imwrite(output1, img)
-
+    equir2pers(input_img, output_dir, FOV, theta, phi, height, width)
 
 if __name__ == '__main__':
     #python3 equir2pers.py ./panorama/test.jpg ./example/perspective 120 0 0 1280 1280
-    equir2pers(sys.argv[1:])
+    getArgs(sys.argv[1:])

@@ -24,8 +24,27 @@ from skimage.exposure import rescale_intensity
 from skimage.morphology import (erosion, dilation, closing, opening, disk, binary_erosion, binary_dilation,
                                 area_closing, area_opening, square, remove_small_objects)
 
+from Perspective import equir2pers
 
 standardCeilingHeigh = 2.4
+
+ItemsName = {
+    'void':  {      'color': [0,0,0]        , 'type' : 0 },
+    'bed':  {       'color': [128,0,0]      , 'type' : 2 },
+    'painting': {   'color': [0,128,0]      , 'type' : 1 },
+    'table':  {     'color': [128,128,0]    , 'type' : 3 },
+    'mirror':  {    'color': [0,0,128]      , 'type' : 1 },
+    'window':  {    'color': [128,0,128]    , 'type' : 1 },
+    'curtain':  {   'color': [0,128,128]    , 'type' : 1 },
+    'chair':  {     'color': [128,128,128]  , 'type' : 3 },
+    'light':  {     'color': [64,0,0]       , 'type' : 4 },
+    'sofa':  {      'color': [192,0,0]      , 'type' : 3 },
+    'door': {       'color': [64,128,0]     , 'type' : 1 },
+    'cabinet': {    'color': [192,128,0]    , 'type' : 2 },
+    'bedside': {    'color': [64,0,128]     , 'type' : 3 },
+    'tv': {         'color': [192,0,128]    , 'type' : 4 },
+    'shelf': {      'color': [64,128,128]   , 'shelf' : 2 }   
+}
 
 def detInputData():
     # load image
@@ -52,10 +71,14 @@ def detInputData():
 
     # load edge map
     global smap
+    global smap_rgb
     smap = Image.open("tmp/test_segmentation_raw.png")
+    smap_rgb = smap.convert("RGB")
+    smap_rgb = np.array(smap_rgb)
     smap = np.array(smap)
     
     # load json bbox
+    global boxes_data
     with open("tmp/test_boxes.json") as f:
         boxes_data = json.load(f)
 
@@ -192,8 +215,88 @@ def getCorrectedFloorCeilWalls(cor_uv):
     walls = getWalls3DReversed(new_floor_3D, new_ceil_3D)
     return new_floor_3D, walls
 
+def getValue(val, limit):
+    #return float(val)
+    val = float(val)
+    if val < 0:
+        val = 0
+    elif val >= limit:
+        val = limit - 1
+    return val
+
+def getBboxMask(bbox):
+    image = np.zeros((pano_H, pano_W), dtype=np.uint8)
+    bbox = [getValue(bbox[0], pano_H),
+        getValue(bbox[1], pano_W),
+        getValue(bbox[2], pano_H),
+        getValue(bbox[3], pano_W)]
+    rr, cc = draw.rectangle((bbox[0], bbox[1]), end=(bbox[2], bbox[3]))
+    image[rr, cc] = 255
+    return image
+
+def getSpecificObjectMask(type, bbox):
+    object_color = ItemsName[type]['color']
+    segmentation = np.uint8(np.all(smap_rgb == object_color, axis=-1) * 255)
+    mask = getBboxMask(bbox)
+    result = np.logical_and(segmentation, mask)
+    return result
+
 #Get objects
 def getObjects():
+    path_mask = "tmp/obj_mask.jpg"
+    count = 0
+    for obj in boxes_data.values():
+        type = obj["type"]
+        bbox = obj["bbox"]
+        y1 = float(bbox[0])
+        x1 = float(bbox[1])
+        y2 = float(bbox[2])
+        x2 = float(bbox[3])
+        x = math.floor((x1 + x2)/2)
+        y = math.floor((y1 + y2)/2)
+
+        theta = 360 * (x / pano_W)  - 180
+        phi = 180 * (y / pano_H) - 90
+
+        width = 1200
+        height = 1200
+
+        newMask = getSpecificObjectMask(type, bbox)
+        
+        #Code for testing
+        image = Image.fromarray(newMask)
+        image.save(path_mask)
+
+        #savemask
+        FOV = 120
+        input_img = './input/test.jpg'
+        output_dir = './tmp/mask/perspective' + str(count) + ".jpg"
+
+        input_mask = './tmp/obj_mask.jpg'
+        output_mask = './tmp/mask/perspective' + str(count) + "_mask.jpg"
+
+        new_img = equir2pers.equir2pers(input_img, output_dir, FOV, theta, phi, height, width)
+        new_mask = equir2pers.equir2pers(input_mask, output_mask, FOV, theta, phi, height, width)
+        print(new_img)
+        print(new_mask)
+        count = count + 1
+        #get BB from mask modified
+        #Generate a .json with it
+        #Apply Total3D using .json, camera and the image
+        #getresults in json and read it
+    '''
+        Iterar tots els objectes del .json
+            Per cada objecte obtenir punt mig de BB, conseguir un FOV decent i generar 
+            una imatge amb la foto normal i la mask
+
+            Obtenir una nova BB amb la mask
+
+            Amb nova foto + BB pasar-ho pel Total 3D
+
+            Obtenir geometria de la BB-3D
+
+            Guardarla en el 3D file amb el format adequat, type, etc
+    '''
     return []
 
 #Get room
