@@ -246,6 +246,7 @@ def getObjects():
     path_mask = "tmp/obj_mask.jpg"
     count = 0
     for obj in boxes_data.values():
+        print(obj)
         type = obj["type"]
         bbox = obj["bbox"]
         y1 = float(bbox[0])
@@ -256,7 +257,7 @@ def getObjects():
         y = math.floor((y1 + y2)/2)
 
         theta = 360 * (x / pano_W)  - 180
-        phi = 180 * (y / pano_H) - 90
+        phi = -180 * (y / pano_H) + 90
 
         width = 1200
         height = 1200
@@ -266,7 +267,6 @@ def getObjects():
         #Code for testing
         image = Image.fromarray(newMask)
         image.save(path_mask)
-
         #savemask
         FOV = 120
         input_img = './input/test.jpg'
@@ -274,11 +274,11 @@ def getObjects():
 
         input_mask = './tmp/obj_mask.jpg'
         output_mask = './tmp/mask/perspective' + str(count) + "_mask.jpg"
-
         new_img = equir2pers.equir2pers(input_img, output_dir, FOV, theta, phi, height, width)
         new_mask = equir2pers.equir2pers(input_mask, output_mask, FOV, theta, phi, height, width)
-        print(new_img)
-        print(new_mask)
+        indices = np.where(new_mask != 0)
+        # Calculate the bounding box coordinates
+        new_bb = [np.min(indices[1]), np.min(indices[0]), np.max(indices[1]), np.max(indices[0])]
         count = count + 1
         #get BB from mask modified
         #Generate a .json with it
