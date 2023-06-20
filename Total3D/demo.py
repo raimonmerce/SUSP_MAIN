@@ -160,10 +160,79 @@ def run(cfg):
                                           torch.argmax(est_data['lo_ori_cls_result'], 1),
                                           est_data['lo_centroid_result'],
                                           est_data['lo_coeffs_result'])
+
+    '''
+    tmp = np.array([[ [-0.   ,  2.4  ,  0.   ],
+            [ 5.987,  2.4  ,  2.418],
+            [ 3.85 ,  2.4  ,  5.858],
+            [-1.221,  2.4  ,  4.222],
+            [-0.   ,  0.   ,  0.   ],
+            [ 5.987,  0.   ,  2.418],
+            [ 3.85 ,  0.   ,  5.858],
+            [-1.221,  0.   ,  4.222]]]).astype(np.float32)
+    '''
+
+    tmp = np.array([[   [-1.93398194,  0.90684267    ,  2.98363459  ],
+                        [-1.07148554,  0.90684267    ,  -3.95647873 ],
+                        [ 3.13661944,  0.90684267    ,  -2.74594808 ],
+                        [2.83821421 ,  0.90684267    ,  3.05308382  ],
+                        [-1.93398194,  -1.7          ,  2.98363459  ],
+                        [-1.07148554,  -1.7          ,  -3.95647873 ],
+                        [3.13661944 ,  -1.7          ,  -2.74594808 ],
+                        [2.83821421 ,  -1.7          ,  3.05308382  ]
+                    ]]).astype(np.float32)
+
+    '''
+    tensor([[[ 0.0132,  3.8997, -2.5573],
+         [-1.2716,  3.8997,  0.8937],
+         [ 3.0398,  3.8997,  2.4988],
+         [ 4.3246,  3.8997, -0.9522],
+         [ 0.0132, -1.2776, -2.5573],
+         [-1.2716, -1.2776,  0.8937],
+         [ 3.0398, -1.2776,  2.4988],
+         [ 4.3246, -1.2776, -0.9522]]], device='cuda:0')
+    '''
+
+    '''
+    [[-1.93398194 -2.98363459 -1.7       ]
+    [-1.07148554  3.95647873 -1.7       ]
+    [ 3.13661944  2.74594808 -1.7       ]
+    [ 2.83821421 -3.05308382 -1.7       ]]
+    [[-1.93398194 -2.89950541  0.90684267]
+    [-1.07148554  4.08163517  0.90684267]
+    [ 3.13661944  2.72946484  0.90684267]
+    [ 2.83821421 -3.02950176  0.90684267]]
+    '''
+
+    lo_bdb3D_out = torch.from_numpy(tmp).to('cuda')
+
     # camera orientation for evaluation
     cam_R_out = get_rotation_matix_result(cfg.bins_tensor,
                                           torch.argmax(est_data['pitch_cls_result'], 1), est_data['pitch_reg_result'],
                                           torch.argmax(est_data['roll_cls_result'], 1), est_data['roll_reg_result'])
+    print("cam_R_out_original")
+    print(cam_R_out)
+    print(type(cam_R_out))
+    print(cam_R_out.dtype)
+
+    #theta = -115.6640625
+    #phi = -39.375
+    
+    theta = 180.0*math.pi/180
+    phi = 0.0*math.pi/180
+    
+    R_theta = np.array([[np.cos(theta), -np.sin(theta), 0],
+                    [np.sin(theta), np.cos(theta), 0],
+                    [0, 0, 1]])
+
+    R_phi = np.array([[np.cos(phi), 0, np.sin(phi)],
+                    [0, 1, 0],
+                    [-np.sin(phi), 0, np.cos(phi)]])
+
+    cam_R_out = np.dot(R_phi, R_theta).astype(np.float32)
+    cam_R_out = torch.from_numpy( np.array([cam_R_out])).to('cuda')
+    print("cam_R_out_new")
+    print(cam_R_out)
 
     # projected center
     P_result = torch.stack(((data['bdb2D_pos'][:, 0] + data['bdb2D_pos'][:, 2]) / 2 -

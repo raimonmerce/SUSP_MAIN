@@ -13,11 +13,10 @@ def equir2pers_save(input_img, output_img, FOV, theta, phi, height, width):
     img = equ.GetPerspective(FOV, theta, phi, height, width)  # Specify parameters(FOV, theta, phi, height, width)
     cv2.imwrite(output_img, img)
 
-def equir2pers(input_img, output_img, FOV, theta, phi, height, width):
+def equir2pers(input_img, FOV, theta, phi, height, width):
     equ = E2P.Equirectangular(input_img)    # Load equirectangular image
 
     img = equ.GetPerspective(FOV, theta, phi, height, width)  # Specify parameters(FOV, theta, phi, height, width)
-    cv2.imwrite(output_img, img)
     return img
 
 def getArgs(argv):

@@ -1,5 +1,5 @@
 import numpy as np
-import cv2
+import subprocess
 import json
 
 from PIL import Image
@@ -247,6 +247,7 @@ def getObjects():
     count = 0
     for obj in boxes_data.values():
         print(obj)
+        print(count)
         type = obj["type"]
         bbox = obj["bbox"]
         y1 = float(bbox[0])
@@ -259,6 +260,11 @@ def getObjects():
         theta = 360 * (x / pano_W)  - 180
         phi = -180 * (y / pano_H) + 90
 
+        print("theta")
+        print(theta)
+        print("phi")
+        print(phi)
+
         width = 1200
         height = 1200
 
@@ -269,19 +275,45 @@ def getObjects():
         image.save(path_mask)
         #savemask
         FOV = 120
+
         input_img = './input/test.jpg'
-        output_dir = './tmp/mask/perspective' + str(count) + ".jpg"
+        #output_dir = "./tmp/mask/perspective.jpg"
+        output_dir = './tmp/object/test.jpg'
 
         input_mask = './tmp/obj_mask.jpg'
-        output_mask = './tmp/mask/perspective' + str(count) + "_mask.jpg"
-        new_img = equir2pers.equir2pers(input_img, output_dir, FOV, theta, phi, height, width)
-        new_mask = equir2pers.equir2pers(input_mask, output_mask, FOV, theta, phi, height, width)
+        #output_mask = "./tmp/mask/perspective_mask.jpg"
+        #output_mask = './tmp/object/perspective' + str(count) + "_mask.jpg"
+
+        new_img = equir2pers.equir2pers_save(input_img, output_dir, FOV, theta, phi, height, width)
+        new_mask = equir2pers.equir2pers(input_mask, FOV, theta, phi, height, width)
         indices = np.where(new_mask != 0)
+        
         # Calculate the bounding box coordinates
-        new_bb = [np.min(indices[1]), np.min(indices[0]), np.max(indices[1]), np.max(indices[0])]
+        new_bb = [str(np.min(indices[1])), str(np.min(indices[0])), str(np.max(indices[1])), str(np.max(indices[0]))]
+        
+        data_json = {
+            "0" : {
+                "type": type,
+                "bbox": new_bb,
+            } 
+        }
+        print(data_json)
+        #file_json_path = "./tmp/mask/test_boxes_" + str(count) + ".json"
+        file_json_path = "./tmp/object/test_boxes.json"
+        """
+        with open(file_json_path, "w") as json_file:
+            json.dump(data_json, file_json_path)
+        
+        
+        cmd = "python3 main.py configs/total3d.yaml --mode demo --demo_path tmp/object"
+
+        process = subprocess.Popen(cmd, shell=True)    
+        return_code = process.wait()
+        while return_code != 0:
+            return_code = process.wait()
+        """
         count = count + 1
-        #get BB from mask modified
-        #Generate a .json with it
+ 
         #Apply Total3D using .json, camera and the image
         #getresults in json and read it
     '''
@@ -565,5 +597,7 @@ def convert():
     floor, walls = getCorrectedFloorCeilWalls(cor_uv)
     objects = getObjects()
     new_room = rescaleRoom(floor, walls, objects)
+    print("new_room")
+    print(new_room)
     new_room = getFakeRoom()
     return new_room
