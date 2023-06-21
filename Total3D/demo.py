@@ -66,8 +66,6 @@ def load_demo_data(demo_path, device):
     '''preprocess'''
     image = Image.open(img_path).convert('RGB')
     cam_K = np.loadtxt(cam_K_path)
-    print("cam_K")
-    print(cam_K)
     with open(detection_path, 'r') as file:
         detections = json.load(file)
     boxes = dict()
@@ -122,24 +120,24 @@ def run(cfg):
     cfg = mount_external_config(cfg)
 
     '''Load save path'''
-    cfg.log_string('Data save path: %s' % (cfg.save_path))
+    #cfg.log_string('Data save path: %s' % (cfg.save_path))
 
     '''Load device'''
-    cfg.log_string('Loading device settings.')
+    #cfg.log_string('Loading device settings.')
     device = load_device(cfg)
 
     '''Load net'''
-    cfg.log_string('Loading model.')
+    #cfg.log_string('Loading model.')
     net = load_model(cfg, device=device)
     checkpoint.register_modules(net=net)
-    cfg.log_string(net)
+    #cfg.log_string(net)
 
     '''Load existing checkpoint'''
     checkpoint.parse_checkpoint()
-    cfg.log_string('-' * 100)
+    #cfg.log_string('-' * 100)
 
     '''Load data'''
-    cfg.log_string('Loading data.')
+    #cfg.log_string('Loading data.')
     data = load_demo_data(cfg.config['demo_path'], device)
 
     '''Run demo'''
@@ -149,7 +147,7 @@ def run(cfg):
         est_data = net(data)
         end = time()
 
-    print('Time elapsed: %s.' % (end-start))
+    #print('Time elapsed: %s.' % (end-start))
 
     '''write and visualize outputs'''
     from net_utils.libs import get_layout_bdb_sunrgbd, get_rotation_matix_result, get_bdb_evaluation

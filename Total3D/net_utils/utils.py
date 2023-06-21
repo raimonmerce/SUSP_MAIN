@@ -92,7 +92,7 @@ class CheckpointIO(object):
             self.resume()
         elif self.cfg.config['finetune']:
             # only load net weights.
-            self.cfg.log_string('Begin to finetune from the existing weight.')
+            #self.cfg.log_string('Begin to finetune from the existing weight.')
             self.finetune()
         else:
             self.cfg.log_string('Begin to train from scratch.')
@@ -214,11 +214,11 @@ def load_device(cfg):
     :return:
     '''
     if cfg.config['device']['use_gpu'] and torch.cuda.is_available():
-        cfg.log_string('GPU mode is on.')
-        cfg.log_string('GPU Ids: %s used.' % (cfg.config['device']['gpu_ids']))
+        #cfg.log_string('GPU mode is on.')
+        #cfg.log_string('GPU Ids: %s used.' % (cfg.config['device']['gpu_ids']))
         return torch.device("cuda")
     else:
-        cfg.log_string('CPU mode is on.')
+        #cfg.log_string('CPU mode is on.')
         return torch.device("cpu")
 
 def load_model(cfg, device):

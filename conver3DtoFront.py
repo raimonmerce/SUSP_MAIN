@@ -104,7 +104,6 @@ def get3DFrontTemplate():
 def is_point_in_triangle(point, vertex1, vertex2, vertex3):
     # Check if a point is inside the triangle formed by three vertices
     area = 0.5 * (-vertex2[2] * vertex3[0] + vertex1[2] * (-vertex2[0] + vertex3[0]) + vertex1[0] * (vertex2[2] - vertex3[2]) + vertex2[0] * vertex3[2])
-    #print(area)
     s = 1 / (2 * area) * (vertex1[2] * vertex3[0] - vertex1[0] * vertex3[2] + (vertex3[2] - vertex1[2]) * point[0] + (vertex1[0] - vertex3[0]) * point[2])
     t = 1 / (2 * area) * (vertex1[0] * vertex2[2] - vertex1[2] * vertex2[0] + (vertex1[2] - vertex2[2]) * point[0] + (vertex2[0] - vertex1[0]) * point[2])
     return s > 0 and t > 0 and 1 - s - t > 0
@@ -394,7 +393,6 @@ def getInWallMesh(obj):
 #Main code
 def convert(room, style):
     count = 1
-    print(room)
     room3dfront = get3DFrontTemplate()
     dataset_furniture = getDataset()
     objects = room['objects']

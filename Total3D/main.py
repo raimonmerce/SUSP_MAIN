@@ -24,8 +24,8 @@ if __name__ == '__main__':
     initiate_environment(cfg.config)
 
     '''Configuration'''
-    cfg.log_string('Loading configurations.')
-    cfg.log_string(cfg.config)
+    #cfg.log_string('Loading configurations.')
+    #cfg.log_string(cfg.config)
     cfg.write_config()
 
     '''Run'''

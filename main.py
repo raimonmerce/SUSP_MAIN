@@ -126,7 +126,6 @@ def executeCFLandPB():
     ]
 
     for cmd in commands:
-        print(cmd)
         process = subprocess.Popen(cmd["cmd"], shell=True, cwd=cmd["wd"])    
         return_code = process.wait()
         while return_code != 0:

@@ -601,7 +601,5 @@ def convert():
     floor, walls = getCorrectedFloorCeilWalls(cor_uv)
     objects = getObjects()
     new_room = rescaleRoom(floor, walls, objects)
-    print("new_room")
-    print(new_room)
     #new_room = getFakeRoom()
     return new_room
