@@ -29,21 +29,21 @@ from Perspective import equir2pers
 standardCeilingHeigh = 2.4
 
 ItemsName = {
-    'void':  {      'color': [0,0,0]        , 'type' : 0 },
-    'bed':  {       'color': [128,0,0]      , 'type' : 2 },
-    'painting': {   'color': [0,128,0]      , 'type' : 1 },
-    'table':  {     'color': [128,128,0]    , 'type' : 3 },
-    'mirror':  {    'color': [0,0,128]      , 'type' : 1 },
-    'window':  {    'color': [128,0,128]    , 'type' : 1 },
-    'curtain':  {   'color': [0,128,128]    , 'type' : 1 },
-    'chair':  {     'color': [128,128,128]  , 'type' : 3 },
-    'light':  {     'color': [64,0,0]       , 'type' : 4 },
-    'sofa':  {      'color': [192,0,0]      , 'type' : 3 },
-    'door': {       'color': [64,128,0]     , 'type' : 1 },
-    'cabinet': {    'color': [192,128,0]    , 'type' : 2 },
-    'bedside': {    'color': [64,0,128]     , 'type' : 3 },
-    'tv': {         'color': [192,0,128]    , 'type' : 4 },
-    'shelf': {      'color': [64,128,128]   , 'shelf' : 2 }   
+    'void':  {      'color': [0,0,0]        , 'id' : 0 , 'type' : 0 },
+    'bed':  {       'color': [128,0,0]      , 'id' : 1 , 'type' : 2 },
+    'painting': {   'color': [0,128,0]      , 'id' : 2 , 'type' : 1 },
+    'table':  {     'color': [128,128,0]    , 'id' : 3 , 'type' : 3 },
+    'mirror':  {    'color': [0,0,128]      , 'id' : 4 , 'type' : 1 },
+    'window':  {    'color': [128,0,128]    , 'id' : 5 , 'type' : 1 },
+    'curtain':  {   'color': [0,128,128]    , 'id' : 6 , 'type' : 1 },
+    'chair':  {     'color': [128,128,128]  , 'id' : 7 , 'type' : 3 },
+    'light':  {     'color': [64,0,0]       , 'id' : 8 , 'type' : 4 },
+    'sofa':  {      'color': [192,0,0]      , 'id' : 9 , 'type' : 3 },
+    'door': {       'color': [64,128,0]     , 'id' : 10 , 'type' : 1 },
+    'cabinet': {    'color': [192,128,0]    , 'id' : 11 , 'type' : 2 },
+    'bedside': {    'color': [64,0,128]     , 'id' : 12 , 'type' : 3 },
+    'tv': {         'color': [192,0,128]    , 'id' : 13 , 'type' : 4 },
+    'shelf': {      'color': [64,128,128]   , 'id' : 14 , 'type' : 2  }   
 }
 
 def detInputData():
@@ -241,13 +241,28 @@ def getSpecificObjectMask(type, bbox):
     result = np.logical_and(segmentation, mask)
     return result
 
+#Get quaternion givin matrix
+def getQuaternion(mat):
+    r11, r12, r13 = mat[0]
+    r21, r22, r23 = mat[1]
+    r31, r32, r33 = mat[2]
+    qw = math.sqrt(1.0 + r11 + r22 + r33) / 2.0
+    qx = (r32 - r23) / (4.0 * qw)
+    qy = (r13 - r31) / (4.0 * qw)
+    qz = (r21 - r12) / (4.0 * qw)
+    return [qw, qx, qy, qz]
+
 #Get objects
 def getObjects():
     path_mask = "tmp/obj_mask.jpg"
     count = 0
+    objects = []
     for obj in boxes_data.values():
-        print(obj)
-        print(count)
+        process = subprocess.Popen("rm -rf tmp/object/*", shell=True)    
+        return_code = process.wait()
+        process = subprocess.Popen("cp tmp/cam_K.txt tmp/object/cam_K.txt", shell=True)    
+        return_code = process.wait()
+
         type = obj["type"]
         bbox = obj["bbox"]
         y1 = float(bbox[0])
@@ -260,11 +275,6 @@ def getObjects():
         theta = 360 * (x / pano_W)  - 180
         phi = -180 * (y / pano_H) + 90
 
-        print("theta")
-        print(theta)
-        print("phi")
-        print(phi)
-
         width = 1200
         height = 1200
 
@@ -276,16 +286,14 @@ def getObjects():
         #savemask
         FOV = 120
 
-        input_img = './input/test.jpg'
+        input_img = 'input/test.jpg'
         #output_dir = "./tmp/mask/perspective.jpg"
-        output_dir = './tmp/object/test.jpg'
-
-        input_mask = './tmp/obj_mask.jpg'
+        output_dir = 'tmp/object/test.jpg'
         #output_mask = "./tmp/mask/perspective_mask.jpg"
         #output_mask = './tmp/object/perspective' + str(count) + "_mask.jpg"
 
-        new_img = equir2pers.equir2pers_save(input_img, output_dir, FOV, theta, phi, height, width)
-        new_mask = equir2pers.equir2pers(input_mask, FOV, theta, phi, height, width)
+        equir2pers.equir2pers_save(input_img, output_dir, FOV, theta, phi, height, width)
+        new_mask = equir2pers.equir2pers(path_mask, FOV, theta, phi, height, width)
         indices = np.where(new_mask != 0)
         
         # Calculate the bounding box coordinates
@@ -297,39 +305,35 @@ def getObjects():
                 "bbox": new_bb,
             } 
         }
-        print(data_json)
+
         #file_json_path = "./tmp/mask/test_boxes_" + str(count) + ".json"
         file_json_path = "./tmp/object/test_boxes.json"
-        """
+        
         with open(file_json_path, "w") as json_file:
-            json.dump(data_json, file_json_path)
+            json.dump(data_json, json_file)
         
-        
-        cmd = "python3 main.py configs/total3d.yaml --mode demo --demo_path tmp/object"
-
-        process = subprocess.Popen(cmd, shell=True)    
+        cmd = "python3 main.py configs/total3d.yaml --mode demo --demo_path ../tmp/object --theta " + str(theta) + " --phi " + str(phi)
+        process = subprocess.Popen(cmd, shell=True, cwd="Total3D")    
         return_code = process.wait()
         while return_code != 0:
             return_code = process.wait()
-        """
+    
+
+        bbox_json_path = "tmp/temp.json"
+
+        with open(bbox_json_path, "r") as json_file:
+            data = json.load(json_file)
+
+        obj = {
+            'type': ItemsName[type]['id'],
+            'bbox': [data["centroid"][0] * 2, data["centroid"][1] * 2, data["centroid"][2] * 2],
+            'pos': data["centroid"],
+            'rot': getQuaternion(data["basis"]),
+            'scale': [1,1,1]
+        }
+        objects.append(obj)
         count = count + 1
- 
-        #Apply Total3D using .json, camera and the image
-        #getresults in json and read it
-    '''
-        Iterar tots els objectes del .json
-            Per cada objecte obtenir punt mig de BB, conseguir un FOV decent i generar 
-            una imatge amb la foto normal i la mask
-
-            Obtenir una nova BB amb la mask
-
-            Amb nova foto + BB pasar-ho pel Total 3D
-
-            Obtenir geometria de la BB-3D
-
-            Guardarla en el 3D file amb el format adequat, type, etc
-    '''
-    return []
+    return objects
 
 #Get room
 def getRoom(floor, walls, objects):
@@ -599,5 +603,5 @@ def convert():
     new_room = rescaleRoom(floor, walls, objects)
     print("new_room")
     print(new_room)
-    new_room = getFakeRoom()
+    #new_room = getFakeRoom()
     return new_room

@@ -161,79 +161,24 @@ def run(cfg):
                                           est_data['lo_centroid_result'],
                                           est_data['lo_coeffs_result'])
 
-    '''
-    tmp = np.array([[ [-0.   ,  2.4  ,  0.   ],
-            [ 5.987,  2.4  ,  2.418],
-            [ 3.85 ,  2.4  ,  5.858],
-            [-1.221,  2.4  ,  4.222],
-            [-0.   ,  0.   ,  0.   ],
-            [ 5.987,  0.   ,  2.418],
-            [ 3.85 ,  0.   ,  5.858],
-            [-1.221,  0.   ,  4.222]]]).astype(np.float32)
-    '''
-
-    tmp = np.array([[   [-1.93398194,  0.90684267    ,  2.98363459  ],
-                        [-1.07148554,  0.90684267    ,  -3.95647873 ],
-                        [ 3.13661944,  0.90684267    ,  -2.74594808 ],
-                        [2.83821421 ,  0.90684267    ,  3.05308382  ],
-                        [-1.93398194,  -1.7          ,  2.98363459  ],
-                        [-1.07148554,  -1.7          ,  -3.95647873 ],
-                        [3.13661944 ,  -1.7          ,  -2.74594808 ],
-                        [2.83821421 ,  -1.7          ,  3.05308382  ]
-                    ]]).astype(np.float32)
-
-    '''
-    tensor([[[ 0.0132,  3.8997, -2.5573],
-         [-1.2716,  3.8997,  0.8937],
-         [ 3.0398,  3.8997,  2.4988],
-         [ 4.3246,  3.8997, -0.9522],
-         [ 0.0132, -1.2776, -2.5573],
-         [-1.2716, -1.2776,  0.8937],
-         [ 3.0398, -1.2776,  2.4988],
-         [ 4.3246, -1.2776, -0.9522]]], device='cuda:0')
-    '''
-
-    '''
-    [[-1.93398194 -2.98363459 -1.7       ]
-    [-1.07148554  3.95647873 -1.7       ]
-    [ 3.13661944  2.74594808 -1.7       ]
-    [ 2.83821421 -3.05308382 -1.7       ]]
-    [[-1.93398194 -2.89950541  0.90684267]
-    [-1.07148554  4.08163517  0.90684267]
-    [ 3.13661944  2.72946484  0.90684267]
-    [ 2.83821421 -3.02950176  0.90684267]]
-    '''
-
-    lo_bdb3D_out = torch.from_numpy(tmp).to('cuda')
-
     # camera orientation for evaluation
-    cam_R_out = get_rotation_matix_result(cfg.bins_tensor,
+
+    if ():
+        cam_R_out = get_rotation_matix_result(cfg.bins_tensor,
                                           torch.argmax(est_data['pitch_cls_result'], 1), est_data['pitch_reg_result'],
                                           torch.argmax(est_data['roll_cls_result'], 1), est_data['roll_reg_result'])
-    print("cam_R_out_original")
-    print(cam_R_out)
-    print(type(cam_R_out))
-    print(cam_R_out.dtype)
-
-    #theta = -115.6640625
-    #phi = -39.375
+    else:
+        theta = cfg.config['theta']*math.pi/180
+        phi = cfg.config['phi']*math.pi/180
+        R_theta = np.array([[np.cos(theta), -np.sin(theta), 0],
+                        [np.sin(theta), np.cos(theta), 0],
+                        [0, 0, 1]])
+        R_phi = np.array([[np.cos(phi), 0, np.sin(phi)],
+                        [0, 1, 0],
+                        [-np.sin(phi), 0, np.cos(phi)]])
+        cam_R_out = np.dot(R_phi, R_theta).astype(np.float32)
+        cam_R_out = torch.from_numpy( np.array([cam_R_out])).to('cuda')
     
-    theta = 180.0*math.pi/180
-    phi = 0.0*math.pi/180
-    
-    R_theta = np.array([[np.cos(theta), -np.sin(theta), 0],
-                    [np.sin(theta), np.cos(theta), 0],
-                    [0, 0, 1]])
-
-    R_phi = np.array([[np.cos(phi), 0, np.sin(phi)],
-                    [0, 1, 0],
-                    [-np.sin(phi), 0, np.cos(phi)]])
-
-    cam_R_out = np.dot(R_phi, R_theta).astype(np.float32)
-    cam_R_out = torch.from_numpy( np.array([cam_R_out])).to('cuda')
-    print("cam_R_out_new")
-    print(cam_R_out)
-
     # projected center
     P_result = torch.stack(((data['bdb2D_pos'][:, 0] + data['bdb2D_pos'][:, 2]) / 2 -
                             (data['bdb2D_pos'][:, 2] - data['bdb2D_pos'][:, 0]) * est_data['offset_2D_result'][:, 0],
@@ -247,7 +192,18 @@ def run(cfg):
                                                        est_data['centroid_reg_result'],
                                                        data['size_cls'], est_data['size_reg_result'], P_result,
                                                        data['K'], cam_R_out, data['split'], return_bdb=True)
+    data_json = {
+        "basis": bdb3D_out_form_cpu[0]["basis"].tolist(),
+        "coeffs": bdb3D_out_form_cpu[0]["coeffs"].tolist(),
+        "centroid": bdb3D_out_form_cpu[0]["centroid"].tolist()
+    }
 
+    file_json_path = "../tmp/temp.json"
+    
+    with open(file_json_path, "w") as json_file:
+        json.dump(data_json, json_file)
+
+    '''
     # save results
     nyu40class_ids = [int(evaluate_bdb['classid']) for evaluate_bdb in bdb3D_out_form_cpu]
     save_path = cfg.config['demo_path'].replace('inputs', 'outputs')
@@ -255,15 +211,9 @@ def run(cfg):
         os.makedirs(save_path)
     # save layout
 
-    print("lo_bdb3D_out")
-    print(lo_bdb3D_out)
-
     print("bdb3D_out_form_cpu")
     print(len(bdb3D_out_form_cpu))
     print(bdb3D_out_form_cpu)
-
-    print("cam_R_out")
-    print(cam_R_out)
 
     savemat(os.path.join(save_path, 'layout.mat'),
             mdict={'layout': lo_bdb3D_out[0, :, :].cpu().numpy()})
@@ -279,6 +229,7 @@ def run(cfg):
     current_faces = est_data['out_faces'][interval[0]:interval[1]].cpu().numpy()
     current_coordinates = est_data['meshes'].transpose(1, 2)[interval[0]:interval[1]].cpu().numpy()
 
+    
     for obj_id, obj_cls in enumerate(current_cls):
         file_path = os.path.join(save_path, '%s_%s.obj' % (obj_id, obj_cls))
 
@@ -286,23 +237,25 @@ def run(cfg):
                     'f': current_faces[obj_id]}
 
         write_obj(file_path, mesh_obj)
-
+    '''
     #########################################################################
     #
     #   Visualization
     #
     #########################################################################
+    '''
     import scipy.io as sio
     from utils.visualize import format_bbox, format_layout, format_mesh, Box
     from glob import glob
-
+    
     pre_layout_data = sio.loadmat(os.path.join(save_path, 'layout.mat'))['layout']
     pre_box_data = sio.loadmat(os.path.join(save_path, 'bdb_3d.mat'))
 
     pre_boxes = format_bbox(pre_box_data, 'prediction')
     pre_layout = format_layout(pre_layout_data)
     pre_cam_R = sio.loadmat(os.path.join(save_path, 'r_ex.mat'))['cam_R']
-
+    print("save_path")
+    print(save_path)
     vtk_objects, pre_boxes = format_mesh(glob(os.path.join(save_path, '*.obj')), pre_boxes)
 
     image = np.array(Image.open(os.path.join(cfg.config['demo_path'], 'test.jpg')).convert('RGB'))
@@ -311,3 +264,4 @@ def run(cfg):
     scene_box = Box(image, None, cam_K, None, pre_cam_R, None, pre_layout, None, pre_boxes, 'prediction', output_mesh = vtk_objects)
     scene_box.draw_projected_bdb3d('prediction', if_save=True, save_path = '%s/3dbbox.png' % (save_path))
     scene_box.draw3D(if_save=True, save_path = '%s/recon.png' % (save_path))
+    '''

@@ -44,6 +44,7 @@ def format_mesh(obj_files, bboxes):
         filename = '.'.join(os.path.basename(obj_file).split('.')[:-1])
         obj_idx = int(filename.split('_')[0])
         class_id = int(filename.split('_')[1].split(' ')[0])
+
         assert bboxes['class_id'][obj_idx] == class_id
 
         object = vtk.vtkOBJReader()

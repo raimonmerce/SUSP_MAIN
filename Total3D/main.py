@@ -12,6 +12,8 @@ def parse_args():
                         help='configure file for training or testing.')
     parser.add_argument('--mode', type=str, default='train', help='train, test or demo.')
     parser.add_argument('--demo_path', type=str, default='demo/inputs/1', help='Please specify the demo path.')
+    parser.add_argument('--theta', type=float, default=None, help='Theta of camera')
+    parser.add_argument('--phi', type=float, default=None, help='Phi of camera')
     return parser.parse_args()
 
 if __name__ == '__main__':
