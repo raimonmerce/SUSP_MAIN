@@ -3,47 +3,25 @@ from scene_synthesis.datasets.threed_future_dataset import ThreedFutureDataset
 from scene_synthesis.datasets.init import filter_function
 
 ItemsT = {
-    #0:  {'color': [0,0,0]       ,'name': 'none'     , 'type' : 0 ,'name': 'none'},
     1:  {'color': [128,0,0]     ,'name': 'bed'      , 'type' : 2 ,'future': 'single_bed'}, #double_bed
-    #2:  {'color': [0,128,0]     ,'name': 'painting' , 'type' : 1 ,'future': 'none'},
     3:  {'color': [128,128,0]   ,'name': 'table'    , 'type' : 3 ,'future': 'table'},
-    #4:  {'color': [0,0,128]     ,'name': 'mirror'   , 'type' : 1 ,'future': 'none'},
     5:  {'color': [128,0,128]   ,'name': 'window'   , 'type' : 1 ,'future': 'none'},
-    #6:  {'color': [0,128,128]   ,'name': 'curtain'  , 'type' : 1 ,'future': 'none'},
     7:  {'color': [128,128,128] ,'name': 'chair'    , 'type' : 3 ,'future': 'chair'},
-    #8:  {'color': [64,0,0]      ,'name': 'light'    , 'type' : 4 ,'future': 'none'},
     9:  {'color': [192,0,0]     ,'name': 'sofa'     , 'type' : 3 ,'future': 'sofa'},
     10: {'color': [64,128,0]    ,'name': 'door'     , 'type' : 1 ,'future': 'none'},
     11: {'color': [192,128,0]   ,'name': 'cabinet'  , 'type' : 2 ,'future': 'cabinet'},
     12: {'color': [64,0,128]    ,'name': 'bedside'  , 'type' : 3 ,'future': 'nightstand'},
-    #13: {'color': [192,0,128]   ,'name': 'tv'       , 'type' : 4 ,'future': 'none'},
     14: {'color': [64,128,128]  ,'name': 'shelf'    , 'type' : 2 ,'future': 'shelf'}   
 }
 
 countId = 1
 
 def getDataset():
-    path_to_3d_front_dataset_directory = '../../../../../media/raimon/SSD/3Dfront/3D-FRONT'
-    path_to_model_info = '../../../../../media/raimon/SSD/3Dfront/3D-FUTURE-model/model_info.json'
-    path_to_3d_future_dataset_directory = '../../../../../media/raimon/SSD/3Dfront/3D-FUTURE-model'
-    path_to_invalid_scene_ids = "config/invalid_threed_front_rooms.txt"
-    path_to_invalid_bbox_jids = "config/black_list.txt"
     path_to_pickled_3d_futute_models = "ATISS_extra/pickle/threed_future_model_bedroom.pkl"
-    annotation_file = "config/bedroom_threed_front_splits.csv"
-
-    '''
-    dataset_furniture = ThreedFutureDataset.from_dataset_directory(
-    dataset_directory=path_to_3d_front_dataset_directory,
-    path_to_model_info=path_to_model_info,
-    path_to_models=path_to_3d_future_dataset_directory)
-    return dataset_furniture
-    '''
 
     dataset_furniture_pickle = ThreedFutureDataset.from_pickled_dataset(
     path_to_pickled_dataset=path_to_pickled_3d_futute_models)
     return dataset_furniture_pickle
-
-
 
 def get3DFrontTemplate():
     return {
@@ -138,7 +116,6 @@ def getMeshFC(points, type):
     #0 = floor 1 = ceil
     floorId = 0
     mesh = {}
-    #mesh['uid'] = str(countId) + "/0"
     mesh['aid'] = []
     mesh['jid'] = ''
     mesh['xyz'] = []
@@ -147,7 +124,6 @@ def getMeshFC(points, type):
     mesh['faces'] = []
     mesh['material'] = "sge/2592cffe-9599-404e-9703-4f833fe1d20c/2740"
     mesh['type'] = "Floor" #if type == 1 else "Ceiling"
-    #countId += 1
 
     triangles = ear_clip_triangulation(points)
 
@@ -187,8 +163,7 @@ def getNormal(triangle):
     normal = np.cross(edge1, edge2)
 
     # Normalize the normal vector (optional)
-    normal = normal / np.linalg.norm(normal)
-    return normal
+    return normal / np.linalg.norm(normal)
 
 def getMeshWall(wall, type):
     mesh = {}
@@ -251,7 +226,6 @@ def getMeshTopWall(wall_in, wall_out):
         0.0, 0.0, 1.0, 0.0, 1.0, 1.0
     ]
 
-    #mesh['faces'] = [0, 2, 1, 3, 5, 4]
     mesh['faces'] = [0, 1, 2, 3, 4, 5]
     mesh['material'] = "sge/2592cffe-9599-404e-9703-4f833fe1d20c/2740"
     mesh['type'] = "WallTop"
@@ -284,7 +258,6 @@ def getMeshBottomWall(wall_in, wall_out):
     ]
 
     mesh['faces'] = [0, 2, 1, 3, 5, 4]
-    #mesh['faces'] = [0, 1, 2, 3, 4, 5]
     mesh['material'] = "sge/2592cffe-9599-404e-9703-4f833fe1d20c/2740"
     mesh['type'] = "WallBottom"
     return mesh
@@ -362,8 +335,6 @@ def getInWallMesh(obj):
     pos_ini = [bbox[0]/2, bbox[1]/2, bbox[2]/2]
     pos_end = [-bbox[0]/2, -bbox[1]/2, -bbox[2]/2]
 
-    #
-
     pos_0 = [pos_end[0], pos_end[1], pos_ini[2]]
     pos_1 = [pos_end[0], pos_ini[1], pos_ini[2]]
     pos_2 = pos_ini
@@ -387,7 +358,6 @@ def getInWallMesh(obj):
     p3 = getNewPoint(pos_3, S, T, R)
 
     meshBack = getSimpleMesh(p0, p1, p2, p3)
-
     return meshFront, meshBack
 
 #Main code
@@ -399,6 +369,7 @@ def convert(room, style):
     children = []
     furniture = []
     mesh = []
+
     #Get furniture
     for obj in objects:
         if obj['type'] in ItemsT:
@@ -435,12 +406,12 @@ def convert(room, style):
                         furniture.append(f)
                         count += 1
     room3dfront["furniture"] = furniture 
-
     countId = 1
+
     #Get meshes
     mesh.append(getMeshFC(room['floor'].tolist(), 0)) #Floor
     mesh.append(getMeshFC(room['floor'].tolist(), 1)) #Ceiling
-    #for wall in room['walls']:
+
     for i in range(len(room['walls'])):
         wall_in = room['walls'][i]
         wall_out = room['walls_out'][i]
@@ -448,6 +419,7 @@ def convert(room, style):
         mesh.append(getMeshWall(wall_out, False))
         mesh.append(getMeshTopWall(wall_in, wall_out))
         mesh.append(getMeshBottomWall(wall_in, wall_out))
+
     for msh in mesh:
         tmp = str(countId) + "/0"
         my_dict = {'uid': tmp}
@@ -462,6 +434,7 @@ def convert(room, style):
         children.append(child)
         count += 1
         countId += 1
+
     room3dfront["scene"]["room"][0]["children"] = children 
     room3dfront["mesh"] = mesh
     return room3dfront

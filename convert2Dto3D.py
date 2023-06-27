@@ -46,6 +46,8 @@ ItemsName = {
     'shelf': {      'color': [64,128,128]   , 'id' : 14 , 'type' : 2  }   
 }
 
+#------------------------------------------------------------------------------
+#Get Input data
 def detInputData():
     # load image
     global img
@@ -82,6 +84,7 @@ def detInputData():
     with open("tmp/test_boxes.json") as f:
         boxes_data = json.load(f)
 
+#------------------------------------------------------------------------------
 #Get corners
 def cmap2corners(cmap):
     cmap = cmap/255.
@@ -106,6 +109,7 @@ def cmap2corners(cmap):
 
     return sorted_cor_uv
 
+#------------------------------------------------------------------------------
 #Get wall map
 def getWallMap(map):
     cmap_ = map/255.
@@ -144,6 +148,7 @@ def getWallMap(map):
     }
     return dilated, wall_info
 
+#------------------------------------------------------------------------------
 #Get floor, ceil and walls
 def uv2xyz(uv,imW,imH):
     tetha = - (uv[:,1] - imH / 2) * np.pi / imH
@@ -163,15 +168,6 @@ def alignFloorCeil(floor_xyz, ceil_xyz, f3D, c3D):
             c3D[i] = [temp_x, temp_y, c3D[i][2]]
         return f3D, c3D
 
-def getWalls3D(floor):
-    floor = np.vstack((floor, floor[0,:]))
-    walls = []
-    for i in range(len(floor) - 1):
-        topL = [floor[i][0], standardCeilingHeigh, floor[i][2]]
-        topR = [floor[i + 1][0], standardCeilingHeigh, floor[i + 1][2]]
-        walls.append([floor[i], topL, topR, floor[i + 1]])
-    return np.array(walls)
-
 def getWalls3DReversed(floor, ceil):
     if len(floor) != len(ceil):
         print("error")
@@ -184,27 +180,11 @@ def getWalls3DReversed(floor, ceil):
             walls.append([floor[i], floor[i + 1], ceil[i + 1], ceil[i]])
         return np.array(walls)
 
-#Get polygon buffer
-def bufferPolygon(poly):
-    polygon_points = poly[:, [0, 2]]
-    scaling_factor = 0.1
-    polygon = Polygon(polygon_points)
-    buffered_polygon = polygon.buffer(scaling_factor, quad_segs = 0, cap_style='flat', join_style='mitre')  
-    polygon_coords = np.array(buffered_polygon.exterior.coords)[::-1][:-1]
-    y_array = np.reshape(poly[:, 1], (-1, 1))
-    result = np.concatenate(( np.reshape(polygon_coords[:, 0], (-1, 1)), y_array,  np.reshape(polygon_coords[:, 1], (-1, 1))), axis=1)
-    return np.array(result)
-
-def getOuterWalls(floor):
-    floor_out_3D = bufferPolygon(floor)
-    return getWalls3D(floor_out_3D)
-
 def getCorrectedFloorCeilWalls(cor_uv):
     cor_xyz = uv2xyz(cor_uv,pano_W,pano_H)
     ceil_xyz = cor_xyz[cor_xyz[:,2]>0,:]
     floor_xyz = cor_xyz[cor_xyz[:,2]<0,:]
     d_floor = 1.7
-    #d_floor =  standardCeilingHeigh
     t_floor = -d_floor/floor_xyz[:,2]
     floor_3D = np.expand_dims(t_floor, axis=1) * floor_xyz
     t_ceil = floor_3D[:,0]/ceil_xyz[:,0]
@@ -215,8 +195,9 @@ def getCorrectedFloorCeilWalls(cor_uv):
     walls = getWalls3DReversed(new_floor_3D, new_ceil_3D)
     return new_floor_3D, walls
 
-def getValue(val, limit):
-    #return float(val)
+#------------------------------------------------------------------------------
+
+def getBboxPossibleValue(val, limit):
     val = float(val)
     if val < 0:
         val = 0
@@ -224,20 +205,18 @@ def getValue(val, limit):
         val = limit - 1
     return val
 
-def getBboxMask(bbox):
-    image = np.zeros((pano_H, pano_W), dtype=np.uint8)
-    bbox = [getValue(bbox[0], pano_H),
-        getValue(bbox[1], pano_W),
-        getValue(bbox[2], pano_H),
-        getValue(bbox[3], pano_W)]
-    rr, cc = draw.rectangle((bbox[0], bbox[1]), end=(bbox[2], bbox[3]))
-    image[rr, cc] = 255
-    return image
-
 def getSpecificObjectMask(type, bbox):
     object_color = ItemsName[type]['color']
     segmentation = np.uint8(np.all(smap_rgb == object_color, axis=-1) * 255)
-    mask = getBboxMask(bbox)
+    
+    #Get bbox mask
+    mask = np.zeros((pano_H, pano_W), dtype=np.uint8)
+    bbox = [getBboxPossibleValue(bbox[0], pano_H),
+        getBboxPossibleValue(bbox[1], pano_W),
+        getBboxPossibleValue(bbox[2], pano_H),
+        getBboxPossibleValue(bbox[3], pano_W)]
+    rr, cc = draw.rectangle((bbox[0], bbox[1]), end=(bbox[2], bbox[3]))
+    mask[rr, cc] = 255
     result = np.logical_and(segmentation, mask)
     return result
 
@@ -251,20 +230,6 @@ def getQuaternion(mat):
     qy = (r13 - r31) / (4.0 * qw)
     qz = (r21 - r12) / (4.0 * qw)
     return [qx, qy, qz, qw]
-    #return [qw, qx, qy, qz]
-
-#Get XYZ given spherical and expected weight
-def getXYZgivenSpherical(theta2, phi2, heighY):
-    theta_radians = math.radians(theta2)
-    phi_radians = math.radians(-phi2)
-    cosine_value = math.cos(math.pi/2 - theta_radians)
-    r = (1.7 - heighY)/(cosine_value)
-
-    x = r * math.sin(theta_radians) * math.cos(phi_radians)
-    y = r * math.sin(theta_radians) * math.sin(phi_radians)
-
-    return [x, 0, y]
-
 
 #Get objects
 def getObjects(walls_image, walls_info, floor, walls):
@@ -296,17 +261,12 @@ def getObjects(walls_image, walls_info, floor, walls):
 
         newMask = getSpecificObjectMask(type, bbox)
         
-        #Code for testing
         image = Image.fromarray(newMask)
         image.save(path_mask)
-        #savemask
         FOV = 120
 
         input_img = 'input/test.jpg'
-        #output_dir = "./tmp/mask/perspective.jpg"
         output_dir = 'tmp/object/test.jpg'
-        #output_mask = "./tmp/mask/perspective_mask.jpg"
-        #output_mask = './tmp/object/perspective' + str(count) + "_mask.jpg"
 
         equir2pers.equir2pers_save(input_img, output_dir, FOV, theta, phi, height, width)
         new_mask = equir2pers.equir2pers(path_mask, FOV, theta, phi, height, width)
@@ -323,7 +283,6 @@ def getObjects(walls_image, walls_info, floor, walls):
                 } 
             }
 
-            #file_json_path = "./tmp/mask/test_boxes_" + str(count) + ".json"
             file_json_path = "./tmp/object/test_boxes.json"
             
             with open(file_json_path, "w") as json_file:
@@ -335,7 +294,6 @@ def getObjects(walls_image, walls_info, floor, walls):
             while return_code != 0:
                 return_code = process.wait()
         
-
             bbox_json_path = "tmp/temp.json"
 
             with open(bbox_json_path, "r") as json_file:
@@ -352,6 +310,31 @@ def getObjects(walls_image, walls_info, floor, walls):
         count = count + 1
     return objects
 
+#------------------------------------------------------------------------------
+
+def bufferPolygon(poly):
+    polygon_points = poly[:, [0, 2]]
+    scaling_factor = 0.1
+    polygon = Polygon(polygon_points)
+    buffered_polygon = polygon.buffer(scaling_factor, quad_segs = 0, cap_style='flat', join_style='mitre')  
+    polygon_coords = np.array(buffered_polygon.exterior.coords)[::-1][:-1]
+    y_array = np.reshape(poly[:, 1], (-1, 1))
+    result = np.concatenate(( np.reshape(polygon_coords[:, 0], (-1, 1)), y_array,  np.reshape(polygon_coords[:, 1], (-1, 1))), axis=1)
+    return np.array(result)
+
+def getWalls3D(floor):
+    floor = np.vstack((floor, floor[0,:]))
+    walls = []
+    for i in range(len(floor) - 1):
+        topL = [floor[i][0], standardCeilingHeigh, floor[i][2]]
+        topR = [floor[i + 1][0], standardCeilingHeigh, floor[i + 1][2]]
+        walls.append([floor[i], topL, topR, floor[i + 1]])
+    return np.array(walls)
+
+def getOuterWalls(floor):
+    floor_out_3D = bufferPolygon(floor)
+    return getWalls3D(floor_out_3D)
+
 def getRoom(floor, walls, objects):
     room = {
         'floor' : np.array(floor),
@@ -361,7 +344,6 @@ def getRoom(floor, walls, objects):
     }
     return room
 
-#Rescale room
 def getNewObjectPoint(P, S, T):
     P = S @ T @ np.append(P, 1)
     return [np.round(P[0],3),0,np.round(P[2],3)]
@@ -369,6 +351,8 @@ def getNewObjectPoint(P, S, T):
 def getNewPoint(P, S, T, R, RX, RY):
     P = S @ T @ RY @ RX @ np.append(P, 1)
     return [np.round(P[0],3),np.round(P[1],3),np.round(P[2],3)]
+
+#------------------------------------------------------------------------------
 
 def rescaleRoom(floor, walls, objects):
     origin_floor = walls[0][0]
@@ -428,8 +412,10 @@ def rescaleRoom(floor, walls, objects):
 
     return getRoom(floor, walls, new_objects)
 
+#------------------------------------------------------------------------------
+
 def getFakeRoom():
-    floorDataV2 = np.array([
+    floorDataFake = np.array([
         [0, 0,  0],
         [3, 0,  0],
         [3, 0,  2],
@@ -437,57 +423,8 @@ def getFakeRoom():
         [5, 0,  4],
         [0, 0,  4]                              
     ])
-
-    '''
-    ceilDataV2 = np.array([
-        [0, 2.5,  0],
-        [3, 2.5,  0],
-        [3, 2.5,  2],
-        [5, 2.5,  2],
-        [5, 2.5,  4],
-        [0, 2.5,  4]                           
-    ])
     
-    wallsDataV2 = np.array([
-        [
-            [0, 0,  0],
-            [0, 2.5,  0],
-            [3, 2.5, 0],
-            [3, 0,  0]
-        ],
-        [
-            [3, 0,  0],
-            [3, 2.5,  0],
-            [3, 2.5,  2],
-            [3, 0,  2]
-        ],
-        [
-            [3, 0,  2],
-            [3, 2.5,  2],
-            [5, 2.5,  2],
-            [5, 0,  2]
-        ],
-        [
-            [5, 0,  2],
-            [5, 2.5,  2],
-            [5, 2.5,  4],
-            [5, 0,  4]
-        ],
-        [
-            [5, 0,  4],
-            [5, 2.5,  4],
-            [0, 2.5,  4],
-            [0, 0,  4]
-        ],
-        [
-            [0, 0,  4],
-            [0, 2.5,  4],
-            [0, 2.5,  0],
-            [0, 0,  0]
-        ]
-    ])'''
-    
-    objectsDataV2 = np.array([
+    objectsDataFake = np.array([
         {   #bed
             'type': 1,
             'bbox': [1, 1, 2],
@@ -552,75 +489,12 @@ def getFakeRoom():
             'scale': [1,1,1]
         }
     ])
-    
-    '''
-    objectsDataV2 = np.array([
-        {   #bed
-            'type': 1,
-            'bbox': [1, 1, 2],
-            'pos': [0.75, 0, 1],
-            'rot': [0,0,0,1],
-            'scale': [1,1,1]
-        },
-        {   #table  
-            'type': 3,
-            'bbox': [2, 1, 1],
-            'pos': [4.5, 0, 3],
-            'rot': [0,-0.707,0,0.707],
-            'scale': [1,1,1]
-        },
-        {   #window
-            'type': 5,
-            'pos_ini': [3.5, 1, 3.99],
-            'pos_end': [2.5, 2, 3.99]
-        },
-        {   #chair
-            'type': 7,
-            'bbox': [0.5, 0.5, 0.5],
-            'pos': [3.5, 0, 3],
-            'rot': [0,-0.707,0,-0.707],
-            'scale': [1,1,1]
-        },
-        {   #sofa
-            'type': 9,
-            'bbox': [2, 1, 1],
-            'pos': [1.5, 0, 3.5],
-            'rot': [0,1,0,0],
-            'scale': [1,1,1]
-        },
-        {   #door
-            'type': 10,
-            'pos_ini': [2.99, 0, 0.1],
-            'pos_end': [2.99, 2, 0.9]
-        },
-        {   #cabinet
-            'type': 11,
-            'bbox': [1.5, 2, 0.5],
-            'pos': [0.25, 0, 3],
-            'rot': [0, -0.707, 0, -0.707],
-            'scale': [1,1,1]
-        },
-        {   #bedside
-            'type': 12,
-            'bbox': [0.5, 0.5, 0.5],
-            'pos': [2, 0, 0.25],
-            'rot': [0, 0, 0, 1],
-            'scale': [1,1,1]
-        },
-        {   #shelf
-            'type': 14,
-            'bbox': [1, 2, 0.5],
-            'pos': [2.75, 0, 1.5],
-            'rot': [0, -0.707, 0, 0.707],
-            'scale': [1,1,1]
-        }
-    ])'''
 
     RoomV2 = {
-        'floor' : floorDataV2,
-        'walls' : getWalls3D(floorDataV2),
-        'walls_out' : getOuterWalls(floorDataV2),
-        'objects' : objectsDataV2
+        'floor' : floorDataFake,
+        'walls' : getWalls3D(floorDataFake),
+        'walls_out' : getOuterWalls(floorDataFake),
+        'objects' : objectsDataFake
     }
     return RoomV2
 
