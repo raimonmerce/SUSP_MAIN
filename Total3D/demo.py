@@ -176,7 +176,7 @@ def run(cfg):
                         [-np.sin(phi), 0, np.cos(phi)]])
         cam_R_out = np.dot(R_phi, R_theta).astype(np.float32)
         cam_R_out = torch.from_numpy( np.array([cam_R_out])).to('cuda')
-    
+
     # projected center
     P_result = torch.stack(((data['bdb2D_pos'][:, 0] + data['bdb2D_pos'][:, 2]) / 2 -
                             (data['bdb2D_pos'][:, 2] - data['bdb2D_pos'][:, 0]) * est_data['offset_2D_result'][:, 0],

@@ -250,10 +250,24 @@ def getQuaternion(mat):
     qx = (r32 - r23) / (4.0 * qw)
     qy = (r13 - r31) / (4.0 * qw)
     qz = (r21 - r12) / (4.0 * qw)
-    return [qw, qx, qy, qz]
+    return [qx, qy, qz, qw]
+    #return [qw, qx, qy, qz]
+
+#Get XYZ given spherical and expected weight
+def getXYZgivenSpherical(theta2, phi2, heighY):
+    theta_radians = math.radians(theta2)
+    phi_radians = math.radians(-phi2)
+    cosine_value = math.cos(math.pi/2 - theta_radians)
+    r = (1.7 - heighY)/(cosine_value)
+
+    x = r * math.sin(theta_radians) * math.cos(phi_radians)
+    y = r * math.sin(theta_radians) * math.sin(phi_radians)
+
+    return [x, 0, y]
+
 
 #Get objects
-def getObjects():
+def getObjects(walls_image, walls_info, floor, walls):
     path_mask = "tmp/obj_mask.jpg"
     count = 0
     objects = []
@@ -274,6 +288,8 @@ def getObjects():
 
         theta = 360 * (x / pano_W)  - 180
         phi = -180 * (y / pano_H) + 90
+        phi2 = -360 * (x / pano_W)  + 180
+        theta2 = 180 * (y / pano_H) - 90
 
         width = 1200
         height = 1200
@@ -297,45 +313,45 @@ def getObjects():
         indices = np.where(new_mask != 0)
         
         # Calculate the bounding box coordinates
-        new_bb = [str(np.min(indices[1])), str(np.min(indices[0])), str(np.max(indices[1])), str(np.max(indices[0]))]
-        
-        data_json = {
-            "0" : {
-                "type": type,
-                "bbox": new_bb,
-            } 
-        }
+        if len(indices[1]) > 0:
+            new_bb = [str(np.min(indices[1])), str(np.min(indices[0])), str(np.max(indices[1])), str(np.max(indices[0]))]
+            
+            data_json = {
+                "0" : {
+                    "type": type,
+                    "bbox": new_bb,
+                } 
+            }
 
-        #file_json_path = "./tmp/mask/test_boxes_" + str(count) + ".json"
-        file_json_path = "./tmp/object/test_boxes.json"
-        
-        with open(file_json_path, "w") as json_file:
-            json.dump(data_json, json_file)
-        
-        cmd = "python3 main.py configs/total3d.yaml --mode demo --demo_path ../tmp/object --theta " + str(theta) + " --phi " + str(phi)
-        process = subprocess.Popen(cmd, shell=True, cwd="Total3D")    
-        return_code = process.wait()
-        while return_code != 0:
+            #file_json_path = "./tmp/mask/test_boxes_" + str(count) + ".json"
+            file_json_path = "./tmp/object/test_boxes.json"
+            
+            with open(file_json_path, "w") as json_file:
+                json.dump(data_json, json_file)
+            
+            cmd = "python3 main.py configs/total3d.yaml --mode demo --demo_path ../tmp/object --theta " + str(theta2) + " --phi " + str(phi2)
+            process = subprocess.Popen(cmd, shell=True, cwd="Total3D")    
             return_code = process.wait()
-    
+            while return_code != 0:
+                return_code = process.wait()
+        
 
-        bbox_json_path = "tmp/temp.json"
+            bbox_json_path = "tmp/temp.json"
 
-        with open(bbox_json_path, "r") as json_file:
-            data = json.load(json_file)
+            with open(bbox_json_path, "r") as json_file:
+                data = json.load(json_file)
 
-        obj = {
-            'type': ItemsName[type]['id'],
-            'bbox': [data["centroid"][0] * 2, data["centroid"][1] * 2, data["centroid"][2] * 2],
-            'pos': data["centroid"],
-            'rot': getQuaternion(data["basis"]),
-            'scale': [1,1,1]
-        }
-        objects.append(obj)
+            obj = {
+                'type': ItemsName[type]['id'],
+                'bbox': [data["coeffs"][0], data["coeffs"][1], data["coeffs"][2]],
+                'pos': [data["centroid"][0], 0, data["centroid"][2]],
+                'rot': getQuaternion(data["basis"]),
+                'scale': [1,1,1],
+            }
+            objects.append(obj)
         count = count + 1
     return objects
 
-#Get room
 def getRoom(floor, walls, objects):
     room = {
         'floor' : np.array(floor),
@@ -346,30 +362,29 @@ def getRoom(floor, walls, objects):
     return room
 
 #Rescale room
+def getNewObjectPoint(P, S, T):
+    P = S @ T @ np.append(P, 1)
+    return [np.round(P[0],3),0,np.round(P[2],3)]
+
 def getNewPoint(P, S, T, R, RX, RY):
-    P = RY @ RX @ R @ S @ T @ np.append(P, 1)
+    P = S @ T @ RY @ RX @ np.append(P, 1)
     return [np.round(P[0],3),np.round(P[1],3),np.round(P[2],3)]
 
 def rescaleRoom(floor, walls, objects):
     origin_floor = walls[0][0]
     origin_ceil = walls[0][3]
     next_floor = walls[1][0]
-    T = np.array([  [1, 0, 0, -origin_floor[0]],
-                    [0, 1, 0, -origin_floor[1]],
-                    [0, 0, 1, -origin_floor[2]],
-                    [0, 0, 0, 1]])
+
+    T = np.array([  [1, 0, 0, 0],
+                [0, 1, 0, -origin_floor[2]],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]])
     scale = standardCeilingHeigh/ (origin_ceil[2] -origin_floor[2])
     # Scaling matrix
     S = np.array([[scale, 0, 0, 0],
                 [0, scale, 0, 0],
                 [0, 0, scale, 0],
                 [0, 0, 0, 1]])
-    angle = math.atan(next_floor[0]/next_floor[1])
-
-    R = np.array([[math.cos(angle), -math.sin(angle), 0, 0],
-                [math.sin(angle), math.cos(angle), 0, 0],
-                [0,     0, 1, 0],
-                [0,     0, 0, 1]])
     
     angle1 = -np.pi / 2
     angle2 = -np.pi / 2
@@ -378,24 +393,40 @@ def rescaleRoom(floor, walls, objects):
                     [0, np.cos(angle1), -np.sin(angle1), 0],
                     [0, np.sin(angle1), np.cos(angle1), 0],
                     [0,     0, 0, 1]])
-    '''
-    RY = np.array([[np.cos(angle2), -np.sin(angle2), 0, 0],
-                    [np.sin(angle2), np.cos(angle2), 0, 0],
-                    [0, 0, 1, 0],
-                    [0,     0, 0, 1]])
-    '''
     
     RY = np.array([[np.cos(angle2), 0, np.sin(angle2), 0],
                 [0, 1, 0, 0],
                 [-np.sin(angle2), 0, np.cos(angle2), 0],
                 
                 [0,     0, 0, 1]])
-
+    
     for i in range(len(floor)):
         floor[i] = getNewPoint(floor[i], S, T, R, RX, RY)
         for j in range(4):
             walls[i][j] = getNewPoint(walls[i][j], S, T, R, RX, RY)
-    return getRoom(floor, walls, objects)
+    
+    scale = 0.5 * scale
+
+    # Scaling matrix
+    NS = np.array([[scale, 0, 0, 0],
+                [0, scale, 0, 0],
+                [0, 0, scale, 0],
+                [0, 0, 0, 1]])
+
+    new_objects = []
+    for obj in objects:
+        bbox = [obj['bbox'][0] * scale, obj['bbox'][1] * scale, obj['bbox'][2] * scale], 
+        
+        new_obj = {
+            'type': obj['type'], 
+            'bbox': obj['bbox'], 
+            'pos': getNewObjectPoint(obj['pos'], NS, T), 
+            'rot': obj["rot"], 
+            'scale': [1, 1, 1]
+        }
+        new_objects.append(new_obj)
+
+    return getRoom(floor, walls, new_objects)
 
 def getFakeRoom():
     floorDataV2 = np.array([
@@ -599,7 +630,7 @@ def convert():
     cor_uv = cmap2corners(cmap)
     walls_image, walls_info = getWallMap(emap)
     floor, walls = getCorrectedFloorCeilWalls(cor_uv)
-    objects = getObjects()
+    objects = getObjects(walls_image, walls_info, floor, walls)
     new_room = rescaleRoom(floor, walls, objects)
     #new_room = getFakeRoom()
     return new_room
