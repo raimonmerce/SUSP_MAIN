@@ -9,4 +9,10 @@ To fully utilize this pipeline, you will need to complement it with the followin
 1. **SUSP_ATISS**: [GitHub Repository](https://github.com/raimonmerce/SUSP_ATISS)
 2. **SUSP_CFL**: [GitHub Repository](https://github.com/raimonmerce/SUSP_CFL)
 
-For more information contact me at raimon.merc.gots@gmail.com
+## Project Document
+
+For further information about the project, check my master thesis:
+
+**Master Thesis**: [Link to Document](https://erepo.uef.fi/items/4d5a84f1-7ed9-43b9-a462-1715eb421b2c)
+
+For more information, contact me at raimon.merc.gots@gmail.com.
